@@ -1,15 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
-import { Database, BarChart3, Upload, Settings } from "lucide-react";
+import { Database, BarChart3, Upload, Settings, Bot, Users } from "lucide-react";
 
 const Navbar = () => {
   const location = useLocation();
 
   const navItems = [
-    { path: "/", label: "Dashboard", icon: BarChart3 },
+    { path: "/dashboard", label: "Painel", icon: BarChart3 },
     { path: "/upload", label: "Upload", icon: Upload },
-    { path: "/pipelines", label: "Pipelines", icon: Database },
-    { path: "/settings", label: "Settings", icon: Settings },
+    { path: "/analytics", label: "Análises", icon: Database },
+    { path: "/customers", label: "Clientes", icon: Users },
+    { path: "/ai-assistant", label: "IA", icon: Bot },
+    { path: "/settings", label: "Configurações", icon: Settings },
   ];
 
   return (
@@ -21,7 +23,7 @@ const Navbar = () => {
               <Database className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              DataStream
+              DataFlow Pro
             </span>
           </Link>
 
@@ -46,7 +48,7 @@ const Navbar = () => {
           </div>
 
           <Button variant="hero" size="sm">
-            Get Started
+            Começar Agora
           </Button>
         </div>
       </div>
