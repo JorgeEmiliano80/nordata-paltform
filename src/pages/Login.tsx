@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, BarChart3, Building2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from '@supabase/supabase-js';
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -14,50 +16,139 @@ const LoginPage = () => {
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [industry, setIndustry] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Configurar listener de auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 100);
+        }
+      }
+    );
+
+    // Verificar sessão existente
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        navigate('/dashboard');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   const industries = [
-    "Agronegócio",
-    "Varejo",
-    "Automotriz",
-    "Indústria",
-    "Ecommerce", 
-    "Turismo",
-    "Tecnologia",
-    "Saúde",
-    "Educação",
-    "Outros"
+    "agronegocio",
+    "varejo", 
+    "automotriz",
+    "industria",
+    "ecommerce",
+    "turismo",
+    "outros"
   ];
+
+  const industryLabels: Record<string, string> = {
+    agronegocio: "Agronegócio",
+    varejo: "Varejo",
+    automotriz: "Automotriz", 
+    industria: "Indústria",
+    ecommerce: "E-commerce",
+    turismo: "Turismo",
+    outros: "Outros"
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulação de login - em produção usaria Supabase auth
-    if (email && password) {
-      localStorage.setItem("user", JSON.stringify({ email, name: "Usuário Demo" }));
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Redirecionando para o dashboard...",
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      setTimeout(() => navigate("/dashboard"), 1500);
+
+      if (error) throw error;
+
+      if (data.user) {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Redirecionando para o dashboard...",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro no login",
+        description: error.message || "Credenciais inválidas",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulação de registro - em produção usaria Supabase auth
-    if (email && password && name && company && industry) {
-      localStorage.setItem("user", JSON.stringify({ 
-        email, 
-        name, 
-        company, 
-        industry 
-      }));
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Bem-vindo ao DataFlow Pro!",
+    setLoading(true);
+
+    try {
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: name,
+            company_name: company,
+            industry: industry
+          }
+        }
       });
-      setTimeout(() => navigate("/dashboard"), 1500);
+
+      if (error) throw error;
+
+      if (data.user) {
+        // Criar perfil do usuário
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            user_id: data.user.id,
+            full_name: name,
+            company_name: company,
+            industry: industry
+          });
+
+        if (profileError) {
+          console.warn('Erro ao criar perfil:', profileError);
+        }
+
+        toast({
+          title: "Conta criada com sucesso!",
+          description: "Bem-vindo à NordataPlatform!",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro no registro",
+        description: error.message || "Erro ao criar conta",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,7 +159,7 @@ const LoginPage = () => {
           <div className="flex items-center justify-center space-x-2 mb-4">
             <BarChart3 className="w-8 h-8 text-primary" />
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              DataFlow Pro
+              NordataPlatform
             </span>
           </div>
           <p className="text-muted-foreground">
@@ -114,8 +205,8 @@ const LoginPage = () => {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full">
-                    Entrar
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Entrando..." : "Entrar"}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </form>
@@ -155,7 +246,7 @@ const LoginPage = () => {
                       >
                         <option value="">Selecione o setor</option>
                         {industries.map((ind) => (
-                          <option key={ind} value={ind}>{ind}</option>
+                          <option key={ind} value={ind}>{industryLabels[ind]}</option>
                         ))}
                       </select>
                     </div>
@@ -182,9 +273,9 @@ const LoginPage = () => {
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" disabled={loading}>
                     <Building2 className="w-4 h-4 mr-2" />
-                    Criar Conta
+                    {loading ? "Criando conta..." : "Criar Conta"}
                   </Button>
                 </form>
               </TabsContent>
