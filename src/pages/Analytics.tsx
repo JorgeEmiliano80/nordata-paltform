@@ -21,10 +21,28 @@ const AnalyticsPage = () => {
   ];
 
   const customerSegments = [
-    { segment: "VIP", count: 45, percentage: 5, revenue: "R$ 89.500", color: "bg-primary" },
-    { segment: "Premium", count: 178, percentage: 20, revenue: "R$ 124.600", color: "bg-accent" },
-    { segment: "Regular", count: 445, percentage: 50, revenue: "R$ 34.400", color: "bg-data-flow" },
-    { segment: "Novo", count: 224, percentage: 25, revenue: "R$ 0", color: "bg-muted" },
+    { segment: "VIP", count: 45, percentage: 5, revenue: "R$ 89.500", color: "bg-primary", avgAge: 42, topProducts: ["Premium Services", "Enterprise"], industry: "Todos" },
+    { segment: "Premium", count: 178, percentage: 20, revenue: "R$ 124.600", color: "bg-accent", avgAge: 38, topProducts: ["Consultoria", "Software"], industry: "Tecnologia/Varejo" },
+    { segment: "Regular", count: 445, percentage: 50, revenue: "R$ 34.400", color: "bg-data-flow", avgAge: 35, topProducts: ["Produtos Básicos", "Serviços"], industry: "Agronegócio/Indústria" },
+    { segment: "Novo", count: 224, percentage: 25, revenue: "R$ 0", color: "bg-muted", avgAge: 29, topProducts: ["Trial", "Demo"], industry: "Ecommerce/Turismo" },
+  ];
+
+  const industrySegments = [
+    { name: "Agronegócio", clients: 156, revenue: "R$ 89.300", growth: "+18.5%", avgTicket: "R$ 572" },
+    { name: "Varejo", clients: 298, revenue: "R$ 67.800", growth: "+12.3%", avgTicket: "R$ 227" },
+    { name: "Automotriz", clients: 89, revenue: "R$ 45.200", growth: "+8.7%", avgTicket: "R$ 508" },
+    { name: "Indústria", clients: 134, revenue: "R$ 34.900", growth: "+15.2%", avgTicket: "R$ 260" },
+    { name: "Ecommerce", clients: 187, revenue: "R$ 28.400", growth: "+22.1%", avgTicket: "R$ 152" },
+    { name: "Turismo", clients: 78, revenue: "R$ 12.100", growth: "-5.3%", avgTicket: "R$ 155" },
+  ];
+
+  const revenueData = [
+    { month: "Jan", revenue: 18500, profit: 12300, loss: -2100 },
+    { month: "Fev", revenue: 22100, profit: 14800, loss: -1800 },
+    { month: "Mar", revenue: 19800, profit: 13200, loss: -2400 },
+    { month: "Abr", revenue: 26300, profit: 17500, loss: -1600 },
+    { month: "Mai", revenue: 24700, profit: 16400, loss: -2000 },
+    { month: "Jun", revenue: 28900, profit: 19200, loss: -1400 },
   ];
 
   const worstPerformers = [
@@ -121,31 +139,49 @@ const AnalyticsPage = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="w-5 h-5" />
-                  <span>Segmentação de Clientes</span>
+                  <span>Segmentação Detalhada de Clientes</span>
                 </CardTitle>
                 <CardDescription>
-                  Distribuição dos clientes por segmento
+                  Análise completa por idade, produtos e indústria
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {customerSegments.map((segment, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full ${segment.color}`}></div>
-                          <span className="font-medium">{segment.segment}</span>
+                    <div key={index} className="p-4 border border-border rounded-lg bg-background/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-4 h-4 rounded-full ${segment.color}`}></div>
+                          <span className="font-semibold text-lg">{segment.segment}</span>
+                          <span className="text-sm text-muted-foreground">({segment.count} clientes)</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{segment.count} clientes</span>
+                        <span className="font-bold text-lg">{segment.revenue}</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="w-full bg-muted rounded-full h-2 mr-3">
-                          <div 
-                            className={`h-2 rounded-full ${segment.color}`}
-                            style={{ width: `${segment.percentage}%` }}
-                          ></div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                        <div className="text-center p-2 bg-muted/30 rounded">
+                          <p className="text-xs text-muted-foreground">Idade Média</p>
+                          <p className="font-semibold">{segment.avgAge} anos</p>
                         </div>
-                        <span className="font-medium min-w-max">{segment.revenue}</span>
+                        <div className="text-center p-2 bg-muted/30 rounded">
+                          <p className="text-xs text-muted-foreground">Produtos Top</p>
+                          <p className="font-semibold text-xs">{segment.topProducts.join(", ")}</p>
+                        </div>
+                        <div className="text-center p-2 bg-muted/30 rounded">
+                          <p className="text-xs text-muted-foreground">Indústria Principal</p>
+                          <p className="font-semibold text-xs">{segment.industry}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="w-full bg-muted rounded-full h-3">
+                        <div 
+                          className={`h-3 rounded-full ${segment.color} relative`}
+                          style={{ width: `${segment.percentage}%` }}
+                        >
+                          <span className="absolute right-2 top-0 text-xs text-primary-foreground font-medium">
+                            {segment.percentage}%
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
