@@ -57,6 +57,7 @@ const LoginPage = () => {
     "industria",
     "ecommerce",
     "turismo",
+    "tecnologia",
     "outros"
   ];
 
@@ -67,6 +68,7 @@ const LoginPage = () => {
     industria: "Indústria",
     ecommerce: "E-commerce",
     turismo: "Turismo",
+    tecnologia: "TI",
     outros: "Outros"
   };
 
