@@ -14,7 +14,232 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          age: number | null
+          created_at: string | null
+          customer_id: string
+          dataset_id: string | null
+          email: string | null
+          gender: string | null
+          id: string
+          last_purchase_date: string | null
+          name: string | null
+          risk_level: string | null
+          segment: string | null
+          total_orders: number | null
+          total_spent: number | null
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string | null
+          customer_id: string
+          dataset_id?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string
+          last_purchase_date?: string | null
+          name?: string | null
+          risk_level?: string | null
+          segment?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          created_at?: string | null
+          customer_id?: string
+          dataset_id?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string
+          last_purchase_date?: string | null
+          name?: string | null
+          risk_level?: string | null
+          segment?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      datasets: {
+        Row: {
+          created_at: string | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          insights: Json | null
+          metadata: Json | null
+          name: string
+          row_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          insights?: Json | null
+          metadata?: Json | null
+          name: string
+          row_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          insights?: Json | null
+          metadata?: Json | null
+          name?: string
+          row_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pipelines: {
+        Row: {
+          configuration: Json | null
+          created_at: string | null
+          dataset_id: string | null
+          description: string | null
+          id: string
+          name: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string | null
+          dataset_id?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string | null
+          dataset_id?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipelines_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          industry: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          industry?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          customer_id: string | null
+          dataset_id: string | null
+          id: string
+          product_category: string | null
+          product_name: string | null
+          quantity: number | null
+          transaction_date: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          customer_id?: string | null
+          dataset_id?: string | null
+          id?: string
+          product_category?: string | null
+          product_name?: string | null
+          quantity?: number | null
+          transaction_date: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          customer_id?: string | null
+          dataset_id?: string | null
+          id?: string
+          product_category?: string | null
+          product_name?: string | null
+          quantity?: number | null
+          transaction_date?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
