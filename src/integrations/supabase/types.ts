@@ -50,13 +50,6 @@ export type Database = {
             referencedRelation: "files"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "chat_history_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       customers: {
@@ -116,13 +109,6 @@ export type Database = {
             referencedRelation: "datasets"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "customers_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       datasets: {
@@ -159,15 +145,7 @@ export type Database = {
           row_count?: number | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "datasets_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       files: {
         Row: {
@@ -218,15 +196,7 @@ export type Database = {
           uploaded_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "files_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       insights: {
         Row: {
@@ -308,14 +278,49 @@ export type Database = {
             referencedRelation: "files"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
-          },
         ]
+      }
+      pending_invitations: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          email: string
+          expires_at: string | null
+          full_name: string
+          id: string
+          industry: string | null
+          invitation_token: string
+          invited_at: string | null
+          invited_by: string
+          used_at: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          email: string
+          expires_at?: string | null
+          full_name: string
+          id?: string
+          industry?: string | null
+          invitation_token: string
+          invited_at?: string | null
+          invited_by: string
+          used_at?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string | null
+          full_name?: string
+          id?: string
+          industry?: string | null
+          invitation_token?: string
+          invited_at?: string | null
+          invited_by?: string
+          used_at?: string | null
+        }
+        Relationships: []
       }
       pipelines: {
         Row: {
@@ -358,13 +363,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "datasets"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pipelines_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -409,13 +407,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "files"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "processing_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -465,22 +456,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "profiles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       transactions: {
         Row: {
@@ -537,37 +513,61 @@ export type Database = {
             referencedRelation: "datasets"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "transactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "admin_dashboard"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
     }
     Views: {
-      admin_dashboard: {
-        Row: {
-          company_name: string | null
-          failed_files: number | null
-          full_name: string | null
-          is_active: boolean | null
-          last_upload: string | null
-          processed_files: number | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          total_chat_messages: number | null
-          total_files: number | null
-          user_created_at: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      activate_invited_user: {
+        Args: { user_uuid: string; token: string }
+        Returns: boolean
+      }
+      create_admin_user: {
+        Args: {
+          admin_email: string
+          admin_password: string
+          admin_name: string
+        }
+        Returns: string
+      }
+      create_invitation: {
+        Args: {
+          invite_email: string
+          invite_name: string
+          invite_company: string
+          invite_industry?: string
+        }
+        Returns: string
+      }
       generate_invitation_token: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_admin_dashboard: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          full_name: string
+          company_name: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_created_at: string
+          is_active: boolean
+          total_files: number
+          processed_files: number
+          failed_files: number
+          last_upload: string
+          total_chat_messages: number
+        }[]
+      }
+      invite_user: {
+        Args: {
+          invite_email: string
+          invite_name: string
+          invite_company: string
+          invite_industry?: string
+        }
         Returns: string
       }
       is_admin: {
@@ -577,6 +577,14 @@ export type Database = {
       trigger_databricks_processing: {
         Args: { file_uuid: string }
         Returns: undefined
+      }
+      use_invitation: {
+        Args: { user_uuid: string; token: string }
+        Returns: boolean
+      }
+      validate_invitation: {
+        Args: { token: string }
+        Returns: Json
       }
     }
     Enums: {
