@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_history: {
+        Row: {
+          created_at: string | null
+          file_id: string | null
+          id: string
+          is_user_message: boolean | null
+          message: string
+          response: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_id?: string | null
+          id?: string
+          is_user_message?: boolean | null
+          message: string
+          response?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_id?: string | null
+          id?: string
+          is_user_message?: boolean | null
+          message?: string
+          response?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_history_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           age: number | null
@@ -71,6 +116,13 @@ export type Database = {
             referencedRelation: "datasets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       datasets: {
@@ -107,7 +159,163 @@ export type Database = {
           row_count?: number | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "datasets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          created_at: string | null
+          databricks_job_id: string | null
+          error_message: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          id: string
+          metadata: Json | null
+          processed_at: string | null
+          status: Database["public"]["Enums"]["file_status"] | null
+          storage_url: string
+          updated_at: string | null
+          uploaded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          databricks_job_id?: string | null
+          error_message?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["file_status"] | null
+          storage_url: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          databricks_job_id?: string | null
+          error_message?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string | null
+          status?: Database["public"]["Enums"]["file_status"] | null
+          storage_url?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      insights: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          data: Json | null
+          description: string | null
+          file_id: string
+          id: string
+          insight_type: Database["public"]["Enums"]["insight_type"]
+          title: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          data?: Json | null
+          description?: string | null
+          file_id: string
+          id?: string
+          insight_type: Database["public"]["Enums"]["insight_type"]
+          title: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          data?: Json | null
+          description?: string | null
+          file_id?: string
+          id?: string
+          insight_type?: Database["public"]["Enums"]["insight_type"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insights_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          related_file_id: string | null
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          related_file_id?: string | null
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          related_file_id?: string | null
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_file_id_fkey"
+            columns: ["related_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       pipelines: {
         Row: {
@@ -151,37 +359,128 @@ export type Database = {
             referencedRelation: "datasets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pipelines_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      processing_logs: {
+        Row: {
+          completed_at: string | null
+          details: Json | null
+          error_details: string | null
+          file_id: string
+          id: string
+          operation: string
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          details?: Json | null
+          error_details?: string | null
+          file_id: string
+          id?: string
+          operation: string
+          started_at?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          details?: Json | null
+          error_details?: string | null
+          file_id?: string
+          id?: string
+          operation?: string
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_logs_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       profiles: {
         Row: {
+          accepted_terms: boolean | null
           company_name: string | null
           created_at: string | null
           full_name: string | null
           id: string
           industry: string | null
+          invitation_token: string | null
+          invited_at: string | null
+          invited_by: string | null
+          is_active: boolean | null
+          role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          accepted_terms?: boolean | null
           company_name?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
           industry?: string | null
+          invitation_token?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          accepted_terms?: boolean | null
           company_name?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
           industry?: string | null
+          invitation_token?: string | null
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -238,17 +537,57 @@ export type Database = {
             referencedRelation: "datasets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_dashboard"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      admin_dashboard: {
+        Row: {
+          company_name: string | null
+          failed_files: number | null
+          full_name: string | null
+          is_active: boolean | null
+          last_upload: string | null
+          processed_files: number | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          total_chat_messages: number | null
+          total_files: number | null
+          user_created_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      generate_invitation_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      is_admin: {
+        Args: { user_uuid?: string }
+        Returns: boolean
+      }
+      trigger_databricks_processing: {
+        Args: { file_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      file_status: "uploaded" | "processing" | "done" | "error"
+      insight_type:
+        | "cluster"
+        | "anomaly"
+        | "trend"
+        | "summary"
+        | "recommendation"
+      user_role: "admin" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -375,6 +714,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      file_status: ["uploaded", "processing", "done", "error"],
+      insight_type: [
+        "cluster",
+        "anomaly",
+        "trend",
+        "summary",
+        "recommendation",
+      ],
+      user_role: ["admin", "client"],
+    },
   },
 } as const
