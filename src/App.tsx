@@ -12,7 +12,10 @@ import AIAssistant from "./pages/AIAssistant";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import AdminPanel from "./pages/AdminPanel";
+import Chatbot from "./pages/Chatbot";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +52,16 @@ const App = () => (
             <ProtectedRoute>
               <AIAssistant />
             </ProtectedRoute>
+          } />
+          <Route path="/chatbot" element={
+            <ProtectedRoute>
+              <Chatbot />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <AdminRoute>
+              <AdminPanel />
+            </AdminRoute>
           } />
           <Route path="/settings" element={
             <ProtectedRoute>
