@@ -524,6 +524,10 @@ export type Database = {
         Args: { user_uuid: string; token: string }
         Returns: boolean
       }
+      cleanup_file_data: {
+        Args: { file_uuid: string }
+        Returns: undefined
+      }
       create_admin_user: {
         Args: {
           admin_email: string
@@ -559,6 +563,18 @@ export type Database = {
           failed_files: number
           last_upload: string
           total_chat_messages: number
+        }[]
+      }
+      get_user_stats: {
+        Args: { user_uuid?: string }
+        Returns: {
+          total_files: number
+          processed_files: number
+          error_files: number
+          pending_files: number
+          total_insights: number
+          unread_notifications: number
+          chat_messages: number
         }[]
       }
       invite_user: {
