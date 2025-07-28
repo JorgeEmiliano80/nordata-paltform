@@ -1,5 +1,46 @@
 # Welcome to your Lovable project
 
+## NORDATA.AI - Plataforma de Procesamiento de Datos
+
+Esta es una plataforma completa de análisis de datos que permite a los usuarios:
+
+- **Upload de archivos**: CSV, Excel, JSON para procesamiento
+- **Análisis con IA**: Insights automáticos generados por Databricks
+- **Chat inteligente**: Conversación con IA sobre los datos
+- **Dashboard completo**: Visualización de métricas y análisis
+- **Gestión de usuarios**: Sistema de invitaciones y roles
+
+### Usuario Master Admin
+- **Email**: iamjorgear80@gmail.com
+- **Contraseña**: Jorge41304254#
+- **Rol**: Administrador de la plataforma
+
+### Configuración de la Base de Datos
+
+La base de datos ha sido configurada con las siguientes tablas principales:
+
+1. **profiles** - Perfiles de usuario con roles y información de empresa
+2. **files** - Archivos subidos para procesamiento
+3. **insights** - Insights generados por IA/Databricks
+4. **chat_history** - Historial de conversaciones con el chatbot
+5. **processing_logs** - Logs de procesamiento de archivos
+6. **notifications** - Sistema de notificaciones
+7. **pending_invitations** - Gestión de invitaciones pendientes
+8. **datasets, customers, transactions** - Datos procesados y analizados
+
+### Funcionalidades Implementadas
+
+- ✅ Sistema de autenticación con Supabase
+- ✅ Row Level Security (RLS) en todas las tablas
+- ✅ Sistema de invitaciones por email
+- ✅ Upload y procesamiento de archivos
+- ✅ Integración con Databricks para análisis
+- ✅ Chatbot con IA (OpenAI)
+- ✅ Dashboard de administración
+- ✅ Notificaciones en tiempo real
+- ✅ Análisis de clientes y segmentación
+- ✅ Métricas de negocio y KPIs
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/dabcbcd3-532f-4a38-9ed3-ee8822d33b3e

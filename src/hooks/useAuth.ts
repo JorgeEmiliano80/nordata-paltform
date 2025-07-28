@@ -96,7 +96,7 @@ export const useAuth = () => {
 
   const signIn = async (email: string, password: string) => {
     // Verificar si es el usuario master
-    if (email === 'iamjorgear80@gmail.com') {
+    if (email === 'iamjorgear80@gmail.com' && password === 'Jorge41304254#') {
       try {
         const { data, error } = await supabase.functions.invoke('master-auth', {
           body: { email, password }
@@ -104,7 +104,7 @@ export const useAuth = () => {
 
         if (error) {
           console.error('Error en autenticación master:', error);
-          return { error: { message: 'Error de autenticación' } };
+          return { error: { message: 'Credenciales de master inválidas' } };
         }
 
         if (data && data.success) {
