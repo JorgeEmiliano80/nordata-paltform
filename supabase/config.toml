@@ -51,3 +51,9 @@ verify_jwt = true
 
 [functions.chatbot]
 verify_jwt = true
+
+[functions.master-auth]
+verify_jwt = false
+
+[functions.setup-master-user]
+verify_jwt = false

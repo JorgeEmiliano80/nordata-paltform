@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useAdmin } from '@/hooks/useAdmin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { UserPlus, FileText, Users, Activity, Copy, CheckCircle, AlertCircle } from 'lucide-react';
+import { UserPlus, FileText, Users, Activity, Copy, CheckCircle, AlertCircle, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Interfaces locales para los tipos de datos
 interface AdminUser {
   user_id: string;
   full_name: string;
@@ -41,10 +42,10 @@ interface PendingInvitation {
 
 const AdminPanel = () => {
   const { user } = useAuth();
+  const { loading: adminLoading, fetchAdminData, createInvitation, setupMasterUser } = useAdmin();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [inviteLoading, setInviteLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   
   // Form states
@@ -66,44 +67,15 @@ const AdminPanel = () => {
   ];
 
   useEffect(() => {
-    fetchAdminData();
+    loadAdminData();
   }, []);
 
-  const fetchAdminData = async () => {
-    try {
-      setLoading(true);
-      
-      // Buscar dashboard de usuários
-      const { data: usersData, error: usersError } = await supabase
-        .rpc('get_admin_dashboard');
-
-      if (usersError) {
-        console.error('Erro ao buscar usuários:', usersError);
-        toast.error('Erro ao carregar usuários');
-      } else {
-        setUsers(usersData || []);
-      }
-
-      // Buscar convites pendentes
-      const { data: invitesData, error: invitesError } = await supabase
-        .from('pending_invitations')
-        .select('*')
-        .is('used_at', null)
-        .order('invited_at', { ascending: false });
-
-      if (invitesError) {
-        console.error('Erro ao buscar convites:', invitesError);
-        toast.error('Erro ao carregar convites');
-      } else {
-        setInvitations(invitesData || []);
-      }
-
-    } catch (error) {
-      console.error('Erro ao buscar dados admin:', error);
-      toast.error('Erro ao carregar dados');
-    } finally {
-      setLoading(false);
-    }
+  const loadAdminData = async () => {
+    setLoading(true);
+    const data = await fetchAdminData();
+    setUsers(data.users);
+    setInvitations(data.invitations);
+    setLoading(false);
   };
 
   const handleInviteUser = async (e: React.FormEvent) => {
@@ -114,42 +86,24 @@ const AdminPanel = () => {
       return;
     }
 
-    try {
-      setInviteLoading(true);
+    const result = await createInvitation(
+      inviteEmail,
+      inviteName,
+      inviteCompany,
+      inviteIndustry
+    );
 
-      const { data, error } = await supabase.functions.invoke('admin-invite-user', {
-        body: {
-          email: inviteEmail,
-          fullName: inviteName,
-          companyName: inviteCompany,
-          industry: inviteIndustry
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.success) {
-        toast.success('Convite criado com sucesso!');
-        setGeneratedInviteUrl(data.inviteUrl);
-        
-        // Limpar formulário
-        setInviteEmail('');
-        setInviteName('');
-        setInviteCompany('');
-        setInviteIndustry('');
-        
-        // Atualizar lista de convites
-        await fetchAdminData();
-      } else {
-        throw new Error(data?.error || 'Erro ao criar convite');
-      }
-    } catch (error: any) {
-      console.error('Erro ao convidar usuário:', error);
-      toast.error(`Erro ao criar convite: ${error.message}`);
-    } finally {
-      setInviteLoading(false);
+    if (result.success) {
+      setGeneratedInviteUrl(result.inviteUrl || '');
+      
+      // Limpar formulário
+      setInviteEmail('');
+      setInviteName('');
+      setInviteCompany('');
+      setInviteIndustry('');
+      
+      // Atualizar lista de convites
+      await loadAdminData();
     }
   };
 
@@ -435,8 +389,8 @@ const AdminPanel = () => {
                       >
                         Cancelar
                       </Button>
-                      <Button type="submit" disabled={inviteLoading}>
-                        {inviteLoading ? 'Criando...' : 'Criar Convite'}
+                      <Button type="submit" disabled={adminLoading}>
+                        {adminLoading ? 'Criando...' : 'Criar Convite'}
                       </Button>
                     </div>
                   </form>
