@@ -10,11 +10,6 @@ Esta es una plataforma completa de análisis de datos que permite a los usuarios
 - **Dashboard completo**: Visualización de métricas y análisis
 - **Gestión de usuarios**: Sistema de invitaciones y roles
 
-### Usuario Master Admin
-- **Email**: iamjorgear80@gmail.com
-- **Contraseña**: Jorge41304254#
-- **Rol**: Administrador de la plataforma
-
 ### Configuración de la Base de Datos
 
 La base de datos ha sido configurada con las siguientes tablas principales:
