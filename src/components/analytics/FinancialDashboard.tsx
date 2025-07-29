@@ -99,12 +99,16 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
     if (typeof value === 'number') {
       return formatCurrency(value);
     }
-    return value;
+    return value?.toString() || '';
   };
 
   const revenueData = getRevenueData();
   const cashFlowData = getCashFlowData();
   const kpiData = getKPIData();
+
+  const handleDateChange = (newDateRange: DateRange | undefined) => {
+    setDateRange(newDateRange);
+  };
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -118,7 +122,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
         <div className="flex items-center gap-2">
           <DatePickerWithRange 
             date={dateRange} 
-            setDate={setDateRange}
+            onDateChange={handleDateChange}
           />
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-32">

@@ -164,8 +164,15 @@ export const useAnalytics = () => {
       // Transform the data to match our interface
       const transformedData = (data || []).map(item => ({
         ...item,
-        action_items: Array.isArray(item.action_items) ? item.action_items : 
-                     typeof item.action_items === 'string' ? [item.action_items] : []
+        action_items: Array.isArray(item.action_items) ? 
+          item.action_items.filter((item: any) => typeof item === 'string') : 
+          typeof item.action_items === 'string' ? [item.action_items] : [],
+        priority: item.priority || 'medium',
+        potential_impact: item.potential_impact || '',
+        implementation_effort: item.implementation_effort || '',
+        is_implemented: item.is_implemented || false,
+        expires_at: item.expires_at || '',
+        metadata: item.metadata || {}
       }));
 
       setRecommendations(transformedData);
@@ -224,7 +231,12 @@ export const useAnalytics = () => {
       // Transform the data to match our interface
       const transformedData = (data || []).map(item => ({
         ...item,
-        ip_address: item.ip_address || '127.0.0.1'
+        ip_address: (item.ip_address || '127.0.0.1') as string,
+        session_id: item.session_id || '',
+        user_agent: item.user_agent || '',
+        file_id: item.file_id || '',
+        duration_seconds: item.duration_seconds || 0,
+        event_data: item.event_data || {}
       }));
 
       setBehaviorEvents(transformedData);

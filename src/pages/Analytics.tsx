@@ -7,12 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BarChart3, Users, TrendingUp, DollarSign, Activity, Bell, RefreshCw } from 'lucide-react';
 
-import ClientSegmentsDashboard from '@/components/analytics/ClientSegmentsDashboard';
+import { ClientSegmentsDashboard } from '@/components/analytics/ClientSegmentsDashboard';
 import DataFlowDashboard from '@/components/analytics/DataFlowDashboard';
-import BehaviorAnalyticsDashboard from '@/components/analytics/BehaviorAnalyticsDashboard';
+import { BehaviorAnalyticsDashboard } from '@/components/analytics/BehaviorAnalyticsDashboard';
 import FinancialDashboard from '@/components/analytics/FinancialDashboard';
-import RecommendationsDashboard from '@/components/analytics/RecommendationsDashboard';
-import PerformanceDashboard from '@/components/analytics/PerformanceDashboard';
+import { RecommendationsDashboard } from '@/components/analytics/RecommendationsDashboard';
+import { PerformanceDashboard } from '@/components/analytics/PerformanceDashboard';
 
 import { useAnalytics } from '@/hooks/useAnalytics';
 
@@ -260,7 +260,11 @@ const Analytics = () => {
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-6">
-          <ClientSegmentsDashboard />
+          <ClientSegmentsDashboard 
+            segments={clientSegments}
+            onRefresh={fetchClientSegments}
+            loading={loading}
+          />
         </TabsContent>
 
         <TabsContent value="dataflow" className="space-y-6">
@@ -268,7 +272,11 @@ const Analytics = () => {
         </TabsContent>
 
         <TabsContent value="behavior" className="space-y-6">
-          <BehaviorAnalyticsDashboard />
+          <BehaviorAnalyticsDashboard 
+            events={behaviorEvents}
+            onRefresh={fetchBehaviorEvents}
+            loading={loading}
+          />
         </TabsContent>
 
         <TabsContent value="financial" className="space-y-6">
@@ -276,8 +284,12 @@ const Analytics = () => {
         </TabsContent>
 
         <TabsContent value="recommendations" className="space-y-6">
-          <RecommendationsDashboard />
-          <PerformanceDashboard />
+          <RecommendationsDashboard 
+            recommendations={recommendations}
+            onRefresh={fetchRecommendations}
+            loading={loading}
+          />
+          <PerformanceDashboard loading={loading} />
         </TabsContent>
       </Tabs>
     </div>
