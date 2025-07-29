@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -31,59 +32,57 @@ function App() {
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Navbar />
-            <main className="container mx-auto px-4 py-8">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/upload" element={
-                  <ProtectedRoute>
-                    <Upload />
-                  </ProtectedRoute>
-                } />
-                <Route path="/analytics" element={
-                  <AdminRoute>
-                    <Analytics />
-                  </AdminRoute>
-                } />
-                <Route path="/admin" element={
-                  <AdminRoute>
-                    <AdminPanel />
-                  </AdminRoute>
-                } />
-                <Route path="/pipelines" element={
-                  <ProtectedRoute>
-                    <Pipelines />
-                  </ProtectedRoute>
-                } />
-                <Route path="/customers" element={
-                  <ProtectedRoute>
-                    <Customers />
-                  </ProtectedRoute>
-                } />
-                <Route path="/chatbot" element={
-                  <ProtectedRoute>
-                    <Chatbot />
-                  </ProtectedRoute>
-                } />
-                <Route path="/ai-assistant" element={
-                  <ProtectedRoute>
-                    <AIAssistant />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/upload" element={
+                <ProtectedRoute>
+                  <Upload />
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <AdminRoute>
+                  <Analytics />
+                </AdminRoute>
+              } />
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <AdminPanel />
+                </AdminRoute>
+              } />
+              <Route path="/pipelines" element={
+                <ProtectedRoute>
+                  <Pipelines />
+                </ProtectedRoute>
+              } />
+              <Route path="/customers" element={
+                <ProtectedRoute>
+                  <Customers />
+                </ProtectedRoute>
+              } />
+              <Route path="/chatbot" element={
+                <ProtectedRoute>
+                  <Chatbot />
+                </ProtectedRoute>
+              } />
+              <Route path="/ai-assistant" element={
+                <ProtectedRoute>
+                  <AIAssistant />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </div>
           <Toaster />
         </BrowserRouter>
