@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,17 +16,18 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
+      toast.error(t('auth.passwordMismatch'));
       return;
     }
 
     if (password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
+      toast.error(t('auth.passwordMinLength'));
       return;
     }
 
@@ -34,13 +36,13 @@ const Register: React.FC = () => {
       const { error } = await signUp(email, password);
       
       if (error) {
-        toast.error(error.message || 'Error al registrarse');
+        toast.error(error.message || t('auth.registerError'));
       } else {
-        toast.success('Registro exitoso. Revisa tu email para confirmar tu cuenta.');
+        toast.success(t('auth.registerSuccess'));
         navigate('/login');
       }
     } catch (error) {
-      toast.error('Error al registrarse');
+      toast.error(t('auth.registerError'));
     } finally {
       setLoading(false);
     }
@@ -50,15 +52,15 @@ const Register: React.FC = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Crear Cuenta</CardTitle>
+          <CardTitle>{t('auth.createAccount')}</CardTitle>
           <CardDescription>
-            Regístrate para acceder a la plataforma
+            {t('auth.registerToAccess')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -68,7 +70,7 @@ const Register: React.FC = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -78,7 +80,7 @@ const Register: React.FC = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+              <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -88,14 +90,14 @@ const Register: React.FC = () => {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Registrando...' : 'Registrarse'}
+              {loading ? t('auth.registering') : t('auth.register')}
             </Button>
           </form>
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
-              ¿Ya tienes cuenta?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <Link to="/login" className="text-primary hover:underline">
-                Inicia sesión
+                {t('auth.login')}
               </Link>
             </p>
           </div>
