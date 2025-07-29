@@ -1,6 +1,6 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { QueryClient } from 'react-query';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from 'sonner';
 
@@ -22,9 +22,11 @@ import PrivacyPolicy from '@/pages/PrivacyPolicy';
 
 import Analytics from '@/pages/Analytics';
 
+const queryClient = new QueryClient();
+
 function App() {
   return (
-    <QueryClient>
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
           <div className="min-h-screen bg-background">
@@ -86,7 +88,7 @@ function App() {
           <Toaster />
         </BrowserRouter>
       </AuthProvider>
-    </QueryClient>
+    </QueryClientProvider>
   );
 }
 

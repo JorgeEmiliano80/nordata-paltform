@@ -161,7 +161,14 @@ export const useAnalytics = () => {
         return;
       }
 
-      setRecommendations(data || []);
+      // Transform the data to match our interface
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        action_items: Array.isArray(item.action_items) ? item.action_items : 
+                     typeof item.action_items === 'string' ? [item.action_items] : []
+      }));
+
+      setRecommendations(transformedData);
     } catch (error) {
       console.error('Error fetching recommendations:', error);
       toast.error('Error al cargar recomendaciones');
@@ -214,7 +221,13 @@ export const useAnalytics = () => {
         return;
       }
 
-      setBehaviorEvents(data || []);
+      // Transform the data to match our interface
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        ip_address: item.ip_address || '127.0.0.1'
+      }));
+
+      setBehaviorEvents(transformedData);
     } catch (error) {
       console.error('Error fetching behavior events:', error);
       toast.error('Error al cargar eventos de comportamiento');
