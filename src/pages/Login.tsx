@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Eye, EyeOff, Mail, Lock, Shield, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import DataAnimation from '@/components/DataAnimation';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -58,11 +58,22 @@ const Login = () => {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.1)_1px,_transparent_0)] bg-[length:20px_20px] opacity-20" />
       
-      <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-card/95 border-border/50 shadow-2xl">
+      {/* Animación de datos en el header */}
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 w-full max-w-md z-5">
+        <DataAnimation />
+      </div>
+      
+      <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-card/95 border-border/50 shadow-2xl mt-20">
         <CardHeader className="text-center space-y-6">
           <div className="flex justify-center">
             <div className="relative">
-              <Shield className="h-16 w-16 text-primary animate-pulse-glow" />
+              <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center animate-pulse-glow">
+                <img 
+                  src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
+                  alt="NordataPlatform" 
+                  className="w-10 h-10 object-contain"
+                />
+              </div>
               <div className="absolute inset-0 h-16 w-16 bg-primary/20 rounded-full blur-md animate-pulse" />
             </div>
           </div>
