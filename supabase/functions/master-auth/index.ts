@@ -47,6 +47,7 @@ serve(async (req) => {
       .select('*')
       .eq('role', 'admin')
       .eq('full_name', 'Jorge Enrique Arrieta')
+      .eq('company_name', 'NORDATA.AI')
       .single();
 
     if (profileError || !profile) {

@@ -24,13 +24,6 @@ serve(async (req) => {
 
     console.log('Configurando usuario master...');
 
-    // Verificar si el usuario ya existe
-    const { data: existingUser, error: checkError } = await supabase.auth.admin.getUserById('00000000-0000-0000-0000-000000000001');
-    
-    if (checkError && !checkError.message.includes('User not found')) {
-      console.error('Error verificando usuario:', checkError);
-    }
-
     // Crear o actualizar usuario en auth.users
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: 'iamjorgear80@gmail.com',
@@ -75,7 +68,7 @@ serve(async (req) => {
       console.log('Usuario creado con ID:', userId);
     }
 
-    // Crear o actualizar perfil - usando 'tecnologia' en lugar de 'technology'
+    // Crear o actualizar perfil
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .upsert({
@@ -97,7 +90,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: profileError.message
+          error: `Error creando perfil: ${profileError.message}`
         }),
         {
           status: 500,
