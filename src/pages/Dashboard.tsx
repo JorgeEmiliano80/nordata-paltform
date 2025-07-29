@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,7 +87,7 @@ const Dashboard = () => {
           {/* Header */}
           <div className="space-y-2">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Bienvenido, {profile?.full_name || user?.email}
+              Bienvenido, Jorge Emiliano
             </h1>
             <p className="text-muted-foreground text-lg">
               {isAdmin() ? 'Panel de administración de la plataforma' : 'Su centro de análisis de datos inteligente'}
