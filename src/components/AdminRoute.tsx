@@ -1,37 +1,21 @@
 
-import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 interface AdminRouteProps {
   children: React.ReactNode;
 }
 
-const AdminRoute = ({ children }: AdminRouteProps) => {
+const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { user, profile, loading, isAdmin } = useAuth();
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        setAuthorized(false);
-      } else if (!profile) {
-        // Aguardar o perfil carregar
-        setAuthorized(null);
-      } else if (isAdmin() && profile.is_active) {
-        setAuthorized(true);
-      } else {
-        setAuthorized(false);
-      }
-    }
-  }, [user, profile, loading, isAdmin]);
-
-  if (loading || authorized === null) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Verificando permissões...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Verificando permisos...</p>
         </div>
       </div>
     );
@@ -41,7 +25,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!authorized) {
+  if (!isAdmin()) {
     return <Navigate to="/dashboard" replace />;
   }
 

@@ -1,474 +1,299 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useAdmin } from '@/hooks/useAdmin';
+
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { UserPlus, FileText, Users, Activity, Copy, CheckCircle, AlertCircle, Settings } from 'lucide-react';
-import { toast } from 'sonner';
-
-// Interfaces locales para los tipos de datos
-interface AdminUser {
-  user_id: string;
-  full_name: string;
-  company_name: string;
-  role: 'admin' | 'client';
-  user_created_at: string;
-  is_active: boolean;
-  total_files: number;
-  processed_files: number;
-  failed_files: number;
-  last_upload: string | null;
-  total_chat_messages: number;
-}
-
-interface PendingInvitation {
-  id: string;
-  email: string;
-  full_name: string;
-  company_name: string;
-  industry: string;
-  invitation_token: string;
-  invited_at: string;
-  expires_at: string;
-  used_at: string | null;
-}
+import { 
+  Users, 
+  UserPlus, 
+  Mail, 
+  Building, 
+  Shield, 
+  Activity, 
+  FileText,
+  MessageSquare,
+  Database,
+  Settings,
+  Eye,
+  Trash2
+} from 'lucide-react';
+import Navbar from '@/components/Navbar';
 
 const AdminPanel = () => {
-  const { user } = useAuth();
-  const { loading: adminLoading, fetchAdminData, createInvitation, setupMasterUser } = useAdmin();
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
-  
-  // Form states
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteName, setInviteName] = useState('');
-  const [inviteCompany, setInviteCompany] = useState('');
-  const [inviteIndustry, setInviteIndustry] = useState('');
-  const [generatedInviteUrl, setGeneratedInviteUrl] = useState('');
+  const [users, setUsers] = useState([
+    {
+      id: 1,
+      name: 'María García',
+      email: 'maria@empresa.com',
+      company: 'Tech Solutions SA',
+      role: 'client',
+      status: 'active',
+      lastLogin: '2024-01-15',
+      filesCount: 12,
+      messagesCount: 45,
+    },
+    {
+      id: 2,
+      name: 'Carlos López',
+      email: 'carlos@comercial.com',
+      company: 'Comercial ABC',
+      role: 'client',
+      status: 'active',
+      lastLogin: '2024-01-14',
+      filesCount: 8,
+      messagesCount: 23,
+    },
+    {
+      id: 3,
+      name: 'Ana Martínez',
+      email: 'ana@startup.com',
+      company: 'Startup Innovadora',
+      role: 'client',
+      status: 'inactive',
+      lastLogin: '2024-01-10',
+      filesCount: 3,
+      messagesCount: 12,
+    },
+  ]);
 
-  const industries = [
-    { value: 'agronegocio', label: 'Agronegócio' },
-    { value: 'varejo', label: 'Varejo' },
-    { value: 'automotriz', label: 'Automotriz' },
-    { value: 'industria', label: 'Indústria' },
-    { value: 'ecommerce', label: 'E-commerce' },
-    { value: 'turismo', label: 'Turismo' },
-    { value: 'tecnologia', label: 'TI' },
-    { value: 'outros', label: 'Outros' }
-  ];
+  const [inviteForm, setInviteForm] = useState({
+    name: '',
+    email: '',
+    company: '',
+    industry: '',
+  });
 
-  useEffect(() => {
-    loadAdminData();
-  }, []);
-
-  const loadAdminData = async () => {
-    setLoading(true);
-    const data = await fetchAdminData();
-    setUsers(data.users);
-    setInvitations(data.invitations);
-    setLoading(false);
+  const stats = {
+    totalUsers: users.length,
+    activeUsers: users.filter(u => u.status === 'active').length,
+    totalFiles: users.reduce((sum, u) => sum + u.filesCount, 0),
+    totalMessages: users.reduce((sum, u) => sum + u.messagesCount, 0),
   };
 
-  const handleInviteUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!inviteEmail || !inviteName || !inviteCompany) {
-      toast.error('Preencha todos os campos obrigatórios');
-      return;
-    }
-
-    const result = await createInvitation(
-      inviteEmail,
-      inviteName,
-      inviteCompany,
-      inviteIndustry
-    );
-
-    if (result.success) {
-      setGeneratedInviteUrl(result.inviteUrl || '');
-      
-      // Limpar formulário
-      setInviteEmail('');
-      setInviteName('');
-      setInviteCompany('');
-      setInviteIndustry('');
-      
-      // Atualizar lista de convites
-      await loadAdminData();
-    }
+  const handleInviteUser = () => {
+    // Lógica para enviar invitación
+    console.log('Invitando usuario:', inviteForm);
+    setInviteForm({ name: '', email: '', company: '', industry: '' });
   };
-
-  const copyInviteUrl = async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success('URL copiada para a área de transferência!');
-    } catch (error) {
-      toast.error('Erro ao copiar URL');
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Painel Administrativo</h1>
-          <p className="text-muted-foreground mt-2">
-            Gerencie usuários e monitore a plataforma NORDATA.AI
-          </p>
-        </div>
-
-        {/* Estatísticas gerais */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Clientes ativos na plataforma
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Panel de Administración
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Gestione usuarios y monitoree la plataforma
               </p>
-            </CardContent>
-          </Card>
+            </div>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="hero" className="flex items-center space-x-2">
+                  <UserPlus className="h-4 w-4" />
+                  <span>Invitar Usuario</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
+                  <DialogDescription>
+                    Envíe una invitación para que se una a la plataforma
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nombre Completo</Label>
+                    <Input
+                      id="name"
+                      placeholder="María García"
+                      value={inviteForm.name}
+                      onChange={(e) => setInviteForm({...inviteForm, name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="maria@empresa.com"
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm({...inviteForm, email: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Empresa</Label>
+                    <Input
+                      id="company"
+                      placeholder="Tech Solutions SA"
+                      value={inviteForm.company}
+                      onChange={(e) => setInviteForm({...inviteForm, company: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="industry">Industria</Label>
+                    <Input
+                      id="industry"
+                      placeholder="Tecnología"
+                      value={inviteForm.industry}
+                      onChange={(e) => setInviteForm({...inviteForm, industry: e.target.value})}
+                    />
+                  </div>
+                  <Button onClick={handleInviteUser} className="w-full">
+                    Enviar Invitación
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Convites Pendentes</CardTitle>
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{invitations.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Aguardando confirmação
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Arquivos</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {users.reduce((acc, user) => acc + user.total_files, 0)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Arquivos processados
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Atividade</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {users.reduce((acc, user) => acc + user.total_chat_messages, 0)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Mensagens do chat
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="users">Usuários</TabsTrigger>
-            <TabsTrigger value="invites">Convites</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Usuários da Plataforma</CardTitle>
-                <CardDescription>
-                  Lista de todos os clientes registrados
-                </CardDescription>
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+                <Users className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                {users.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">
-                      Nenhum usuário encontrado
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Comece convidando seu primeiro cliente
-                    </p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Empresa</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Arquivos</TableHead>
-                        <TableHead>Último Upload</TableHead>
-                        <TableHead>Cadastro</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user) => (
-                        <TableRow key={user.user_id}>
-                          <TableCell className="font-medium">
-                            {user.full_name}
-                          </TableCell>
-                          <TableCell>{user.company_name}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.is_active ? "default" : "secondary"}>
-                              {user.is_active ? 'Ativo' : 'Inativo'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{user.total_files} total</span>
-                              <span className="text-xs text-muted-foreground">
-                                {user.processed_files} processados, {user.failed_files} falhas
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {user.last_upload ? formatDate(user.last_upload) : 'Nunca'}
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(user.user_created_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <div className="text-2xl font-bold">{stats.totalUsers}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.activeUsers} activos
+                </p>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="invites" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold">Convites</h2>
-                <p className="text-muted-foreground">
-                  Gerencie convites pendentes e convide novos usuários
+            <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-r from-accent/5 to-primary/5" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Archivos</CardTitle>
+                <FileText className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalFiles}</div>
+                <p className="text-xs text-muted-foreground">
+                  En la plataforma
                 </p>
-              </div>
-              
-              <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Convidar Usuário
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Convidar Novo Usuário</DialogTitle>
-                    <DialogDescription>
-                      Preencha os dados para criar um convite de acesso à plataforma
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <form onSubmit={handleInviteUser} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="invite-name">Nome Completo *</Label>
-                        <Input
-                          id="invite-name"
-                          value={inviteName}
-                          onChange={(e) => setInviteName(e.target.value)}
-                          placeholder="Nome do usuário"
-                          required
-                        />
+              </CardContent>
+            </Card>
+
+            <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-r from-data-flow/5 to-primary/5" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Mensajes</CardTitle>
+                <MessageSquare className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalMessages}</div>
+                <p className="text-xs text-muted-foreground">
+                  Total del chat
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-r from-success/5 to-primary/5" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Actividad</CardTitle>
+                <Activity className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">87%</div>
+                <p className="text-xs text-muted-foreground">
+                  Usuarios activos
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Users Table */}
+          <Card className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5" />
+            <CardHeader className="relative">
+              <CardTitle className="flex items-center">
+                <Database className="h-5 w-5 mr-2 text-primary" />
+                Gestión de Usuarios
+              </CardTitle>
+              <CardDescription>
+                Administre usuarios y sus permisos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="space-y-4">
+                {users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50 hover:bg-card/80 transition-colors"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <span className="text-primary font-medium">
+                          {user.name.charAt(0)}
+                        </span>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="invite-email">Email *</Label>
-                        <Input
-                          id="invite-email"
-                          type="email"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                          placeholder="email@empresa.com"
-                          required
-                        />
+                      <div>
+                        <h3 className="font-medium">{user.name}</h3>
+                        <p className="text-sm text-muted-foreground flex items-center">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {user.email}
+                        </p>
+                        <p className="text-sm text-muted-foreground flex items-center">
+                          <Building className="h-3 w-3 mr-1" />
+                          {user.company}
+                        </p>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="invite-company">Empresa *</Label>
-                        <Input
-                          id="invite-company"
-                          value={inviteCompany}
-                          onChange={(e) => setInviteCompany(e.target.value)}
-                          placeholder="Nome da empresa"
-                          required
-                        />
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{user.filesCount}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{user.messagesCount}</span>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="invite-industry">Setor</Label>
-                        <select
-                          id="invite-industry"
-                          className="w-full h-10 px-3 py-2 border border-border rounded-md bg-background"
-                          value={inviteIndustry}
-                          onChange={(e) => setInviteIndustry(e.target.value)}
-                        >
-                          <option value="">Selecione o setor</option>
-                          {industries.map((industry) => (
-                            <option key={industry.value} value={industry.value}>
-                              {industry.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {generatedInviteUrl && (
-                      <Alert>
-                        <CheckCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          <div className="space-y-2">
-                            <p>Convite criado com sucesso! Compartilhe este link:</p>
-                            <div className="flex items-center space-x-2">
-                              <Input 
-                                value={generatedInviteUrl} 
-                                readOnly 
-                                className="text-xs"
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => copyInviteUrl(generatedInviteUrl)}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setShowInviteDialog(false);
-                          setGeneratedInviteUrl('');
-                        }}
+                      
+                      <Badge 
+                        variant="outline" 
+                        className={
+                          user.status === 'active' 
+                            ? 'bg-success/10 text-success border-success/20' 
+                            : 'bg-muted/10 text-muted-foreground border-muted/20'
+                        }
                       >
-                        Cancelar
-                      </Button>
-                      <Button type="submit" disabled={adminLoading}>
-                        {adminLoading ? 'Criando...' : 'Criar Convite'}
-                      </Button>
+                        {user.status}
+                      </Badge>
+                      
+                      <div className="flex items-center space-x-1">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Convites Pendentes</CardTitle>
-                <CardDescription>
-                  Convites enviados aguardando confirmação
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {invitations.length === 0 ? (
-                  <div className="text-center py-8">
-                    <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">
-                      Nenhum convite pendente
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Todos os convites foram aceitos ou nenhum foi enviado ainda
-                    </p>
                   </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Empresa</TableHead>
-                        <TableHead>Enviado em</TableHead>
-                        <TableHead>Expira em</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invitations.map((invitation) => (
-                        <TableRow key={invitation.id}>
-                          <TableCell className="font-medium">
-                            {invitation.full_name}
-                          </TableCell>
-                          <TableCell>{invitation.email}</TableCell>
-                          <TableCell>{invitation.company_name}</TableCell>
-                          <TableCell>{formatDate(invitation.invited_at)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              {new Date(invitation.expires_at) < new Date() ? (
-                                <Badge variant="destructive">Expirado</Badge>
-                              ) : (
-                                <Badge variant="outline">
-                                  {formatDate(invitation.expires_at)}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => copyInviteUrl(
-                                `${window.location.origin}/login?token=${invitation.invitation_token}`
-                              )}
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Copiar Link
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

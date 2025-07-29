@@ -1,66 +1,28 @@
 
-import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, profile, loading } = useAuth();
-  const [timeoutReached, setTimeoutReached] = useState(false);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    // Timeout de segurança para evitar loading infinito
-    const timeout = setTimeout(() => {
-      setTimeoutReached(true);
-    }, 10000); // 10 segundos
-
-    return () => clearTimeout(timeout);
-  }, []);
-
-  // Se ainda está carregando e não passou do timeout
-  if (loading && !timeoutReached) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Verificando autenticación...</p>
         </div>
       </div>
     );
   }
 
-  // Se não há usuário ou passou do timeout sem carregar
-  if (!user || timeoutReached) {
+  if (!user) {
     return <Navigate to="/login" replace />;
-  }
-
-  // Se tem usuário mas não tem perfil (pode ser normal para alguns casos)
-  if (!profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Configurando perfil...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Se tem perfil mas não está ativo
-  if (!profile.is_active) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center p-8">
-          <h2 className="text-2xl font-bold mb-4">Conta Inativa</h2>
-          <p className="text-muted-foreground">
-            Sua conta está inativa. Entre em contato com o administrador.
-          </p>
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;

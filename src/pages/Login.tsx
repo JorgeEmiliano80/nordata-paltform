@@ -1,14 +1,15 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Lock, Mail, Shield } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Eye, EyeOff, Mail, Lock, Shield, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -16,12 +17,8 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { signIn, user } = useAuth();
-
-  // Verificar se há token de convite
-  const invitationToken = searchParams.get('token');
 
   useEffect(() => {
     if (user) {
@@ -36,81 +33,88 @@ const Login = () => {
 
     try {
       if (!email || !password) {
-        setError('Por favor, preencha todos os campos');
+        setError('Por favor, complete todos los campos');
         return;
       }
 
       const { error } = await signIn(email, password);
       
       if (error) {
-        setError(error.message || 'Credenciais inválidas');
+        setError(error.message || 'Credenciales inválidas');
       } else {
-        toast.success('Login realizado com sucesso!');
+        toast.success('Inicio de sesión exitoso');
         navigate('/dashboard');
       }
     } catch (error: any) {
-      setError(error.message || 'Erro ao fazer login');
+      setError(error.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Shield className="h-12 w-12 text-primary" />
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Fondo futurista */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.1)_1px,_transparent_0)] bg-[length:20px_20px] opacity-20" />
+      
+      <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-card/95 border-border/50 shadow-2xl">
+        <CardHeader className="text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="relative">
+              <Shield className="h-16 w-16 text-primary animate-pulse-glow" />
+              <div className="absolute inset-0 h-16 w-16 bg-primary/20 rounded-full blur-md animate-pulse" />
+            </div>
           </div>
-          <CardTitle className="text-2xl font-bold">NORDATA.AI</CardTitle>
-          <CardDescription>
-            Faça login para acessar sua plataforma de análise de dados
-          </CardDescription>
+          <div className="space-y-2">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              nordataplatform
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Plataforma de análisis inteligente de datos
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
-          {invitationToken && (
-            <Alert className="mb-6">
-              <Shield className="h-4 w-4" />
-              <AlertDescription>
-                Você foi convidado para acessar a plataforma. Faça login com suas credenciais.
-              </AlertDescription>
-            </Alert>
-          )}
-
+        
+        <CardContent className="space-y-6">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
+              </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
+                  placeholder="usuario@empresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 transition-all duration-300"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-sm font-medium">
+                Contraseña
+              </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Sua senha"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
+                  className="pl-10 pr-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 transition-all duration-300"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -118,32 +122,44 @@ const Login = () => {
             </div>
 
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Entrando...' : 'Entrar'}
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all duration-300 shadow-lg hover:shadow-xl"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Iniciando sesión...
+                </div>
+              ) : (
+                'Iniciar Sesión'
+              )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Acesso apenas por convite
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Entre em contato com o administrador para obter acesso
-            </p>
-          </div>
-
-          {/* Master User Demo Info */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Demo - Usuário Master:</h4>
-            <p className="text-sm text-blue-800">
-              <strong>Email:</strong> iamjorgear80@gmail.com<br />
-              <strong>Senha:</strong> Jorge41304254#
-            </p>
+          <div className="text-center space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Acceso solo por invitación
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Contacte al administrador para obtener credenciales
+              </p>
+            </div>
+            
+            <Link 
+              to="/privacy" 
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Política de Privacidad
+            </Link>
           </div>
         </CardContent>
       </Card>
