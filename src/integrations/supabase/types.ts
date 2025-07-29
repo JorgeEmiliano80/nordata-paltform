@@ -52,6 +52,105 @@ export type Database = {
           },
         ]
       }
+      client_recommendations: {
+        Row: {
+          action_items: Json | null
+          created_at: string | null
+          description: string
+          expires_at: string | null
+          id: string
+          implementation_effort: string | null
+          is_implemented: boolean | null
+          metadata: Json | null
+          potential_impact: string | null
+          priority:
+            | Database["public"]["Enums"]["recommendation_priority"]
+            | null
+          recommendation_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json | null
+          created_at?: string | null
+          description: string
+          expires_at?: string | null
+          id?: string
+          implementation_effort?: string | null
+          is_implemented?: boolean | null
+          metadata?: Json | null
+          potential_impact?: string | null
+          priority?:
+            | Database["public"]["Enums"]["recommendation_priority"]
+            | null
+          recommendation_type: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_items?: Json | null
+          created_at?: string | null
+          description?: string
+          expires_at?: string | null
+          id?: string
+          implementation_effort?: string | null
+          is_implemented?: boolean | null
+          metadata?: Json | null
+          potential_impact?: string | null
+          priority?:
+            | Database["public"]["Enums"]["recommendation_priority"]
+            | null
+          recommendation_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      client_segments: {
+        Row: {
+          activity_level: number | null
+          created_at: string | null
+          criteria: Json | null
+          id: string
+          last_activity: string | null
+          revenue_contribution: number | null
+          risk_level: number | null
+          score: number | null
+          segment: Database["public"]["Enums"]["client_segment"]
+          segment_updated_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_level?: number | null
+          created_at?: string | null
+          criteria?: Json | null
+          id?: string
+          last_activity?: string | null
+          revenue_contribution?: number | null
+          risk_level?: number | null
+          score?: number | null
+          segment: Database["public"]["Enums"]["client_segment"]
+          segment_updated_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_level?: number | null
+          created_at?: string | null
+          criteria?: Json | null
+          id?: string
+          last_activity?: string | null
+          revenue_contribution?: number | null
+          risk_level?: number | null
+          score?: number | null
+          segment?: Database["public"]["Enums"]["client_segment"]
+          segment_updated_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           age: number | null
@@ -110,6 +209,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_flow_metrics: {
+        Row: {
+          active_users_count: number | null
+          avg_processing_time_minutes: number | null
+          databricks_jobs_running: number | null
+          files_completed_count: number | null
+          files_failed_count: number | null
+          files_processing_count: number | null
+          files_uploaded_count: number | null
+          id: string
+          period_end: string
+          period_start: string
+          timestamp: string | null
+          total_data_volume_mb: number | null
+        }
+        Insert: {
+          active_users_count?: number | null
+          avg_processing_time_minutes?: number | null
+          databricks_jobs_running?: number | null
+          files_completed_count?: number | null
+          files_failed_count?: number | null
+          files_processing_count?: number | null
+          files_uploaded_count?: number | null
+          id?: string
+          period_end: string
+          period_start: string
+          timestamp?: string | null
+          total_data_volume_mb?: number | null
+        }
+        Update: {
+          active_users_count?: number | null
+          avg_processing_time_minutes?: number | null
+          databricks_jobs_running?: number | null
+          files_completed_count?: number | null
+          files_failed_count?: number | null
+          files_processing_count?: number | null
+          files_uploaded_count?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          timestamp?: string | null
+          total_data_volume_mb?: number | null
+        }
+        Relationships: []
       }
       datasets: {
         Row: {
@@ -195,6 +339,54 @@ export type Database = {
           updated_at?: string | null
           uploaded_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      financial_metrics: {
+        Row: {
+          cac: number | null
+          costs: number | null
+          created_at: string | null
+          id: string
+          ltv: number | null
+          metric_date: string
+          mrr: number | null
+          processing_cost: number | null
+          profit: number | null
+          revenue: number | null
+          storage_cost: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cac?: number | null
+          costs?: number | null
+          created_at?: string | null
+          id?: string
+          ltv?: number | null
+          metric_date: string
+          mrr?: number | null
+          processing_cost?: number | null
+          profit?: number | null
+          revenue?: number | null
+          storage_cost?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cac?: number | null
+          costs?: number | null
+          created_at?: string | null
+          id?: string
+          ltv?: number | null
+          metric_date?: string
+          mrr?: number | null
+          processing_cost?: number | null
+          profit?: number | null
+          revenue?: number | null
+          storage_cost?: number | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -319,6 +511,42 @@ export type Database = {
           invited_at?: string | null
           invited_by?: string
           used_at?: string | null
+        }
+        Relationships: []
+      }
+      performance_analytics: {
+        Row: {
+          comparison_period: string | null
+          created_at: string | null
+          dimension_filters: Json | null
+          id: string
+          metric_name: string
+          metric_type: string
+          metric_value: number
+          time_period: string
+          trend_direction: string | null
+        }
+        Insert: {
+          comparison_period?: string | null
+          created_at?: string | null
+          dimension_filters?: Json | null
+          id?: string
+          metric_name: string
+          metric_type: string
+          metric_value: number
+          time_period: string
+          trend_direction?: string | null
+        }
+        Update: {
+          comparison_period?: string | null
+          created_at?: string | null
+          dimension_filters?: Json | null
+          id?: string
+          metric_name?: string
+          metric_type?: string
+          metric_value?: number
+          time_period?: string
+          trend_direction?: string | null
         }
         Relationships: []
       }
@@ -515,6 +743,53 @@ export type Database = {
           },
         ]
       }
+      user_behavior_tracking: {
+        Row: {
+          created_at: string | null
+          duration_seconds: number | null
+          event_data: Json | null
+          event_type: Database["public"]["Enums"]["behavior_event_type"]
+          file_id: string | null
+          id: string
+          ip_address: unknown | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          event_data?: Json | null
+          event_type: Database["public"]["Enums"]["behavior_event_type"]
+          file_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          event_data?: Json | null
+          event_type?: Database["public"]["Enums"]["behavior_event_type"]
+          file_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_behavior_tracking_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -523,6 +798,10 @@ export type Database = {
       activate_invited_user: {
         Args: { user_uuid: string; token: string }
         Returns: boolean
+      }
+      calculate_client_segmentation: {
+        Args: { target_user_id?: string }
+        Returns: undefined
       }
       cleanup_file_data: {
         Args: { file_uuid: string }
@@ -544,6 +823,14 @@ export type Database = {
           invite_industry?: string
         }
         Returns: string
+      }
+      generate_client_recommendations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_data_flow_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       generate_invitation_token: {
         Args: Record<PropertyKey, never>
@@ -604,6 +891,21 @@ export type Database = {
       }
     }
     Enums: {
+      behavior_event_type:
+        | "login"
+        | "file_upload"
+        | "file_process"
+        | "chat_message"
+        | "dashboard_view"
+        | "result_download"
+        | "feature_use"
+      client_segment:
+        | "vip"
+        | "premium"
+        | "regular"
+        | "new"
+        | "at_risk"
+        | "inactive"
       file_status: "uploaded" | "processing" | "done" | "error"
       insight_type:
         | "cluster"
@@ -611,6 +913,7 @@ export type Database = {
         | "trend"
         | "summary"
         | "recommendation"
+      recommendation_priority: "high" | "medium" | "low"
       user_role: "admin" | "client"
     }
     CompositeTypes: {
@@ -739,6 +1042,23 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      behavior_event_type: [
+        "login",
+        "file_upload",
+        "file_process",
+        "chat_message",
+        "dashboard_view",
+        "result_download",
+        "feature_use",
+      ],
+      client_segment: [
+        "vip",
+        "premium",
+        "regular",
+        "new",
+        "at_risk",
+        "inactive",
+      ],
       file_status: ["uploaded", "processing", "done", "error"],
       insight_type: [
         "cluster",
@@ -747,6 +1067,7 @@ export const Constants = {
         "summary",
         "recommendation",
       ],
+      recommendation_priority: ["high", "medium", "low"],
       user_role: ["admin", "client"],
     },
   },
