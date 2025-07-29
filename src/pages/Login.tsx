@@ -66,15 +66,12 @@ const Login = () => {
       <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-card/95 border-border/50 shadow-2xl mt-20">
         <CardHeader className="text-center space-y-6">
           <div className="flex justify-center">
-            <div className="relative">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center animate-pulse-glow">
-                <img 
-                  src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
-                  alt="NordataPlatform" 
-                  className="w-10 h-10 object-contain"
-                />
-              </div>
-              <div className="absolute inset-0 h-16 w-16 bg-primary/20 rounded-full blur-md animate-pulse" />
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center animate-pulse-glow">
+              <img 
+                src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
+                alt="NordataPlatform" 
+                className="w-10 h-10 object-contain"
+              />
             </div>
           </div>
           <div className="space-y-2">
