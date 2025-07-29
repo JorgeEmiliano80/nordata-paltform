@@ -21,15 +21,19 @@ const Dashboard = () => {
   const fileStats = getFileStats();
 
   useEffect(() => {
+    console.log('Dashboard useEffect - isAdmin:', isAdmin(), 'user:', user?.id, 'profile:', profile?.role);
+    
     if (isAdmin()) {
+      console.log('Loading admin data...');
       setAdminLoading(true);
       
       fetchAdminData()
         .then((data) => {
+          console.log('Admin data loaded:', data);
           setAdminStats(data);
         })
         .catch((error) => {
-          console.error('Error cargando datos admin:', error);
+          console.error('Error loading admin data:', error);
         })
         .finally(() => {
           setAdminLoading(false);
@@ -63,8 +67,8 @@ const Dashboard = () => {
     });
   };
 
-  // Mostrar loading apenas cuando necessário
-  if (filesLoading || (isAdmin() && adminLoading)) {
+  // Mostrar loading solo cuando es necesario
+  if (filesLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -105,7 +109,9 @@ const Dashboard = () => {
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{adminStats.users.length}</div>
+                    <div className="text-2xl font-bold">
+                      {adminLoading ? '...' : adminStats.users.length}
+                    </div>
                     <p className="text-xs text-muted-foreground">Clientes ativos</p>
                   </CardContent>
                 </Card>
@@ -116,7 +122,9 @@ const Dashboard = () => {
                     <MessageSquare className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{adminStats.invitations.length}</div>
+                    <div className="text-2xl font-bold">
+                      {adminLoading ? '...' : adminStats.invitations.length}
+                    </div>
                     <p className="text-xs text-muted-foreground">Aguardando confirmação</p>
                   </CardContent>
                 </Card>
@@ -128,7 +136,7 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {adminStats.users.reduce((acc, user) => acc + user.total_files, 0)}
+                      {adminLoading ? '...' : adminStats.users.reduce((acc, user) => acc + user.total_files, 0)}
                     </div>
                     <p className="text-xs text-muted-foreground">Na plataforma</p>
                   </CardContent>
@@ -141,7 +149,7 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {adminStats.users.reduce((acc, user) => acc + user.total_chat_messages, 0)}
+                      {adminLoading ? '...' : adminStats.users.reduce((acc, user) => acc + user.total_chat_messages, 0)}
                     </div>
                     <p className="text-xs text-muted-foreground">Total de mensagens</p>
                   </CardContent>

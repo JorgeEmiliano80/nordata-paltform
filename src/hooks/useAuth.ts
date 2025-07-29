@@ -29,6 +29,7 @@ export const useAuth = () => {
       if (masterSession) {
         try {
           const data = JSON.parse(masterSession);
+          console.log('Master session loaded:', data);
           setUser(data.user);
           setProfile(data.profile);
           setSession({ user: data.user, access_token: data.token } as any);
@@ -85,8 +86,7 @@ export const useAuth = () => {
         .single();
 
       if (error) {
-        console.error('Erro ao buscar perfil:', error);
-        // Se não encontrar perfil, limpar estados
+        console.error('Error fetching profile:', error);
         if (error.code === 'PGRST116') {
           setProfile(null);
         }
@@ -95,7 +95,7 @@ export const useAuth = () => {
 
       setProfile(data);
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
+      console.error('Error fetching profile:', error);
       setProfile(null);
     }
   };
@@ -104,20 +104,23 @@ export const useAuth = () => {
     // Verificar si es el usuario master
     if (email === 'iamjorgear80@gmail.com' && password === 'Jorge41304254#') {
       try {
+        console.log('Attempting master login...');
         const { data, error } = await supabase.functions.invoke('master-auth', {
           body: { email, password }
         });
 
         if (error) {
-          console.error('Error en autenticación master:', error);
+          console.error('Master auth error:', error);
           return { error: { message: 'Error de conexión con el servidor' } };
         }
 
         if (data && data.success) {
+          console.log('Master login successful');
+          
           // Almacenar datos del master localmente
           localStorage.setItem('master_session', JSON.stringify(data));
           
-          // Simular user y session para el master
+          // Configurar estados
           setUser({
             id: data.user.id,
             email: data.user.email,
@@ -133,6 +136,7 @@ export const useAuth = () => {
 
           return { error: null };
         } else {
+          console.error('Master login failed:', data?.error);
           return { error: { message: data?.error || 'Credenciales inválidas' } };
         }
       } catch (error: any) {
@@ -173,12 +177,12 @@ export const useAuth = () => {
           });
 
         if (inviteError || !success) {
-          console.error('Erro ao usar convite:', inviteError);
+          console.error('Error using invitation:', inviteError);
           return { error: { message: 'Token de convite inválido' } };
         }
       } catch (inviteError) {
-        console.error('Erro ao processar convite:', inviteError);
-        return { error: { message: 'Erro ao processar convite' } };
+        console.error('Error processing invitation:', inviteError);
+        return { error: { message: 'Error al procesar convite' } };
       }
     }
 
@@ -189,6 +193,7 @@ export const useAuth = () => {
     // Verificar se é sessão de master
     const masterSession = localStorage.getItem('master_session');
     if (masterSession) {
+      console.log('Logging out master user');
       localStorage.removeItem('master_session');
       setUser(null);
       setSession(null);

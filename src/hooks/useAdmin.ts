@@ -36,11 +36,12 @@ export const useAdmin = () => {
     try {
       setLoading(true);
       
-      // Verificar si es el usuario master
       const masterSession = localStorage.getItem('master_session');
       
       if (masterSession) {
-        // Para el usuario master, usar consultas directas
+        console.log('Fetching admin data as master user');
+        
+        // Para el usuario master, obtener todos los clientes directamente
         const { data: users, error: usersError } = await supabase
           .from('profiles')
           .select(`
@@ -58,7 +59,7 @@ export const useAdmin = () => {
           throw usersError;
         }
 
-        // Obtener estadísticas de archivos para cada usuario
+        // Obtener estadísticas para cada usuario
         const enrichedUsers = await Promise.all(
           (users || []).map(async (user) => {
             const { data: files } = await supabase
@@ -104,6 +105,7 @@ export const useAdmin = () => {
           throw invitationsError;
         }
 
+        console.log('Admin data fetched successfully:', { users: enrichedUsers.length, invitations: invitations?.length || 0 });
         return {
           users: enrichedUsers,
           invitations: invitations || []
@@ -118,7 +120,6 @@ export const useAdmin = () => {
           throw usersError;
         }
 
-        // Obtener invitaciones pendientes
         const { data: invitations, error: invitationsError } = await supabase
           .from('pending_invitations')
           .select('*')
