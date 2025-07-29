@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { 
   NavigationMenu, 
   NavigationMenuContent, 
@@ -23,13 +24,11 @@ import {
   Shield,
   Activity
 } from 'lucide-react';
+import LanguageSelector from './LanguageSelector';
 
 const Navbar = () => {
-  const {
-    user,
-    signOut,
-    isAdmin
-  } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -58,14 +57,14 @@ const Navbar = () => {
                 <NavigationMenuItem>
                   <Link to="/dashboard" className={navigationMenuTriggerStyle()}>
                     <Home className="w-4 h-4 mr-2" />
-                    Dashboard
+                    {t('nav.dashboard')}
                   </Link>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>
                     <Upload className="w-4 h-4 mr-2" />
-                    Datos
+                    {t('nav.data')}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid gap-3 p-4 w-[400px]">
@@ -74,9 +73,9 @@ const Navbar = () => {
                           to="/upload"
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                          <div className="text-sm font-medium leading-none">Subir Archivos</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.uploadFiles')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Sube y procesa tus archivos de datos
+                            {t('upload.subtitle')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -85,7 +84,7 @@ const Navbar = () => {
                           to="/pipelines"
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                          <div className="text-sm font-medium leading-none">Pipelines</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.pipelines')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                             Gestiona tus flujos de datos
                           </p>
@@ -98,7 +97,7 @@ const Navbar = () => {
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>
                     <BarChart3 className="w-4 h-4 mr-2" />
-                    Análisis
+                    {t('nav.analysis')}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid gap-3 p-4 w-[400px]">
@@ -108,9 +107,9 @@ const Navbar = () => {
                             to="/analytics"
                             className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                           >
-                            <div className="text-sm font-medium leading-none">Analytics</div>
+                            <div className="text-sm font-medium leading-none">{t('nav.analytics')}</div>
                             <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                              Dashboard de análisis avanzado
+                              {t('analytics.subtitle')}
                             </p>
                           </Link>
                         </NavigationMenuLink>
@@ -120,7 +119,7 @@ const Navbar = () => {
                           to="/customers"
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                          <div className="text-sm font-medium leading-none">Clientes</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.customers')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                             Gestión de clientes y segmentos
                           </p>
@@ -133,7 +132,7 @@ const Navbar = () => {
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>
                     <Bot className="w-4 h-4 mr-2" />
-                    IA
+                    {t('nav.ai')}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid gap-3 p-4 w-[400px]">
@@ -142,9 +141,9 @@ const Navbar = () => {
                           to="/chatbot"
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                          <div className="text-sm font-medium leading-none">Chatbot</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.chatbot')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Asistente conversacional inteligente
+                            {t('chatbot.subtitle')}
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -153,7 +152,7 @@ const Navbar = () => {
                           to="/ai-assistant"
                           className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                          <div className="text-sm font-medium leading-none">Asistente IA</div>
+                          <div className="text-sm font-medium leading-none">{t('nav.aiAssistant')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                             Asistente de análisis de datos
                           </p>
@@ -167,7 +166,7 @@ const Navbar = () => {
                   <NavigationMenuItem>
                     <Link to="/admin" className={navigationMenuTriggerStyle()}>
                       <Shield className="w-4 h-4 mr-2" />
-                      Admin
+                      {t('nav.admin')}
                     </Link>
                   </NavigationMenuItem>
                 )}
@@ -175,7 +174,7 @@ const Navbar = () => {
                 <NavigationMenuItem>
                   <Link to="/settings" className={navigationMenuTriggerStyle()}>
                     <Settings className="w-4 h-4 mr-2" />
-                    Configuración
+                    {t('nav.settings')}
                   </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -184,18 +183,19 @@ const Navbar = () => {
 
           {/* User Actions */}
           <div className="flex items-center space-x-4">
+            <LanguageSelector />
             {user ? (
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-muted-foreground">
                   {user.email}
                 </span>
                 <Button variant="outline" onClick={handleSignOut}>
-                  Salir
+                  {t('nav.logout')}
                 </Button>
               </div>
             ) : (
               <Button asChild>
-                <Link to="/login">Iniciar Sesión</Link>
+                <Link to="/login">{t('nav.login')}</Link>
               </Button>
             )}
           </div>

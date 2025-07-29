@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +21,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { signIn, user } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (user) {
@@ -33,20 +36,20 @@ const Login = () => {
 
     try {
       if (!email || !password) {
-        setError('Por favor, complete todos los campos');
+        setError(t('auth.fillAllFields'));
         return;
       }
 
       const { error } = await signIn(email, password);
       
       if (error) {
-        setError(error.message || 'Credenciales inválidas');
+        setError(error.message || t('auth.loginError'));
       } else {
-        toast.success('Inicio de sesión exitoso');
+        toast.success(t('auth.loginSuccess'));
         navigate('/dashboard');
       }
     } catch (error: any) {
-      setError(error.message || 'Error al iniciar sesión');
+      setError(error.message || t('auth.loginError'));
     } finally {
       setLoading(false);
     }
@@ -66,7 +69,7 @@ const Login = () => {
       <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-card/95 border-border/50 shadow-2xl mt-20">
         <CardHeader className="text-center space-y-6">
           <div className="flex justify-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center animate-pulse-glow">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
               <img 
                 src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
                 alt="NordataPlatform" 
@@ -79,7 +82,7 @@ const Login = () => {
               nordataplatform
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Plataforma de análisis inteligente de datos
+              {t('landing.subtitle')}
             </CardDescription>
           </div>
         </CardHeader>
@@ -88,7 +91,7 @@ const Login = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
-                Email
+                {t('auth.email')}
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -106,7 +109,7 @@ const Login = () => {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">
-                Contraseña
+                {t('auth.password')}
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -144,10 +147,10 @@ const Login = () => {
               {loading ? (
                 <div className="flex items-center">
                   <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                  Iniciando sesión...
+                  {t('auth.loggingIn')}
                 </div>
               ) : (
-                'Iniciar Sesión'
+                t('auth.login')
               )}
             </Button>
           </form>
@@ -155,10 +158,10 @@ const Login = () => {
           <div className="text-center space-y-4">
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <p className="text-sm text-muted-foreground">
-                Acceso solo por invitación
+                {t('auth.invitationOnly')}
               </p>
               <p className="text-xs text-muted-foreground">
-                Contacte al administrador para obtener credenciales
+                {t('auth.contactAdmin')}
               </p>
             </div>
             
@@ -166,7 +169,7 @@ const Login = () => {
               to="/privacy" 
               className="text-xs text-muted-foreground hover:text-primary transition-colors"
             >
-              Política de Privacidad
+              {t('auth.privacyPolicy')}
             </Link>
           </div>
         </CardContent>

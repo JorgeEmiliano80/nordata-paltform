@@ -1,0 +1,120 @@
+
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "close": "Close",
+    "open": "Open",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "upload": "Upload",
+    "data": "Data",
+    "analysis": "Analysis",
+    "ai": "AI",
+    "admin": "Admin",
+    "settings": "Settings",
+    "logout": "Logout",
+    "login": "Login",
+    "uploadFiles": "Upload Files",
+    "pipelines": "Pipelines",
+    "analytics": "Analytics",
+    "customers": "Customers",
+    "chatbot": "Chatbot",
+    "aiAssistant": "AI Assistant"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "loginSuccess": "Login successful",
+    "loginError": "Invalid credentials",
+    "fillAllFields": "Please fill all fields",
+    "loggingIn": "Logging in...",
+    "invitationOnly": "Access by invitation only",
+    "contactAdmin": "Contact administrator for credentials",
+    "privacyPolicy": "Privacy Policy"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Welcome to your intelligent data analysis platform",
+    "quickActions": "Quick Actions",
+    "uploadData": "Upload Data",
+    "viewAnalytics": "View Analytics",
+    "openChatbot": "Open Chatbot",
+    "manageUsers": "Manage Users",
+    "recentFiles": "Recent Files",
+    "systemStats": "System Statistics",
+    "totalFiles": "Total Files",
+    "activeUsers": "Active Users",
+    "dataProcessed": "Data Processed",
+    "aiInteractions": "AI Interactions"
+  },
+  "landing": {
+    "title": "Data Analysis Platform",
+    "subtitle": "Transform your data into valuable insights with artificial intelligence",
+    "getStarted": "Get Started Free",
+    "login": "Login",
+    "features": "Main Features",
+    "dataUpload": "Data Upload",
+    "dataUploadDesc": "Upload CSV, JSON and XLSX files for automatic analysis",
+    "advancedAI": "Advanced AI",
+    "advancedAIDesc": "Intelligent processing with Databricks and machine learning",
+    "visualization": "Visualization",
+    "visualizationDesc": "Interactive dashboards and real-time reports",
+    "security": "Security",
+    "securityDesc": "Data protection and guaranteed regulatory compliance"
+  },
+  "upload": {
+    "title": "Upload Files",
+    "subtitle": "Upload your data files for analysis",
+    "dragDrop": "Drag and drop files here or click to browse",
+    "supportedFormats": "Supported formats: CSV, JSON, XLSX",
+    "uploading": "Uploading...",
+    "uploadSuccess": "File uploaded successfully",
+    "uploadError": "Error uploading file"
+  },
+  "chatbot": {
+    "title": "AI Assistant",
+    "subtitle": "Chat with your data using artificial intelligence",
+    "placeholder": "Ask me anything about your data...",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "noData": "No data available to analyze"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Advanced data analysis and insights",
+    "overview": "Overview",
+    "charts": "Charts",
+    "reports": "Reports",
+    "export": "Export"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure your platform preferences",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "security": "Security",
+    "account": "Account"
+  },
+  "languages": {
+    "en": "English",
+    "es": "Español",
+    "pt": "Português"
+  }
+}

@@ -1,0 +1,120 @@
+
+{
+  "common": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "search": "Pesquisar",
+    "filter": "Filtrar",
+    "close": "Fechar",
+    "open": "Abrir",
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "upload": "Upload",
+    "data": "Dados",
+    "analysis": "Análise",
+    "ai": "IA",
+    "admin": "Admin",
+    "settings": "Configurações",
+    "logout": "Sair",
+    "login": "Entrar",
+    "uploadFiles": "Upload de Arquivos",
+    "pipelines": "Pipelines",
+    "analytics": "Analytics",
+    "customers": "Clientes",
+    "chatbot": "Chatbot",
+    "aiAssistant": "Assistente IA"
+  },
+  "auth": {
+    "login": "Entrar",
+    "register": "Registrar",
+    "email": "Email",
+    "password": "Senha",
+    "loginSuccess": "Login realizado com sucesso",
+    "loginError": "Credenciais inválidas",
+    "fillAllFields": "Por favor, preencha todos os campos",
+    "loggingIn": "Fazendo login...",
+    "invitationOnly": "Acesso apenas por convite",
+    "contactAdmin": "Contate o administrador para obter credenciais",
+    "privacyPolicy": "Política de Privacidade"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Bem-vindo à sua plataforma de análise inteligente de dados",
+    "quickActions": "Ações Rápidas",
+    "uploadData": "Upload de Dados",
+    "viewAnalytics": "Ver Analytics",
+    "openChatbot": "Abrir Chatbot",
+    "manageUsers": "Gerenciar Usuários",
+    "recentFiles": "Arquivos Recentes",
+    "systemStats": "Estatísticas do Sistema",
+    "totalFiles": "Total de Arquivos",
+    "activeUsers": "Usuários Ativos",
+    "dataProcessed": "Dados Processados",
+    "aiInteractions": "Interações IA"
+  },
+  "landing": {
+    "title": "Plataforma de Análise de Dados",
+    "subtitle": "Transforme seus dados em insights valiosos com inteligência artificial",
+    "getStarted": "Começar Grátis",
+    "login": "Entrar",
+    "features": "Principais Recursos",
+    "dataUpload": "Upload de Dados",
+    "dataUploadDesc": "Faça upload de arquivos CSV, JSON e XLSX para análise automática",
+    "advancedAI": "IA Avançada",
+    "advancedAIDesc": "Processamento inteligente com Databricks e machine learning",
+    "visualization": "Visualização",
+    "visualizationDesc": "Dashboards interativos e relatórios em tempo real",
+    "security": "Segurança",
+    "securityDesc": "Proteção de dados e conformidade regulatória garantida"
+  },
+  "upload": {
+    "title": "Upload de Arquivos",
+    "subtitle": "Faça upload dos seus arquivos de dados para análise",
+    "dragDrop": "Arraste e solte arquivos aqui ou clique para navegar",
+    "supportedFormats": "Formatos suportados: CSV, JSON, XLSX",
+    "uploading": "Fazendo upload...",
+    "uploadSuccess": "Arquivo enviado com sucesso",
+    "uploadError": "Erro ao enviar arquivo"
+  },
+  "chatbot": {
+    "title": "Assistente IA",
+    "subtitle": "Converse com seus dados usando inteligência artificial",
+    "placeholder": "Pergunte-me qualquer coisa sobre seus dados...",
+    "send": "Enviar",
+    "thinking": "Pensando...",
+    "noData": "Nenhum dado disponível para análise"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Análise avançada de dados e insights",
+    "overview": "Visão Geral",
+    "charts": "Gráficos",
+    "reports": "Relatórios",
+    "export": "Exportar"
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Configure as preferências da sua plataforma",
+    "language": "Idioma",
+    "theme": "Tema",
+    "notifications": "Notificações",
+    "security": "Segurança",
+    "account": "Conta"
+  },
+  "languages": {
+    "en": "English",
+    "es": "Español",
+    "pt": "Português"
+  }
+}
