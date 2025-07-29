@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,7 +69,7 @@ const Dashboard = () => {
   const QuickAction = ({ title, description, icon: Icon, onClick, variant = "outline" }: any) => (
     <Button 
       variant={variant}
-      className="justify-start h-auto p-4 hover:scale-102 transition-all duration-300"
+      className="justify-start h-auto p-4 hover:bg-accent hover:text-accent-foreground transition-colors duration-300"
       onClick={onClick}
     >
       <Icon className="mr-3 h-5 w-5" />
