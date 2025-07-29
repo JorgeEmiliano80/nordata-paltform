@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -36,105 +37,30 @@ export const useAdmin = () => {
     try {
       setLoading(true);
       
-      const masterSession = localStorage.getItem('master_session');
-      
-      if (masterSession) {
-        console.log('Fetching admin data as master user');
-        
-        // Para el usuario master, obtener todos los clientes directamente
-        const { data: users, error: usersError } = await supabase
-          .from('profiles')
-          .select(`
-            user_id,
-            full_name,
-            company_name,
-            role,
-            created_at,
-            is_active
-          `)
-          .eq('role', 'client');
+      const { data: users, error: usersError } = await supabase
+        .rpc('get_admin_dashboard');
 
-        if (usersError) {
-          console.error('Error fetching users:', usersError);
-          throw usersError;
-        }
-
-        // Obtener estadísticas para cada usuario
-        const enrichedUsers = await Promise.all(
-          (users || []).map(async (user) => {
-            const { data: files } = await supabase
-              .from('files')
-              .select('id, status, uploaded_at')
-              .eq('user_id', user.user_id);
-
-            const { data: chatMessages } = await supabase
-              .from('chat_history')
-              .select('id')
-              .eq('user_id', user.user_id);
-
-            const totalFiles = files?.length || 0;
-            const processedFiles = files?.filter(f => f.status === 'done').length || 0;
-            const failedFiles = files?.filter(f => f.status === 'error').length || 0;
-            const lastUpload = files?.length > 0 ? 
-              files.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime())[0].uploaded_at : null;
-
-            return {
-              user_id: user.user_id,
-              full_name: user.full_name,
-              company_name: user.company_name,
-              role: user.role,
-              user_created_at: user.created_at,
-              is_active: user.is_active,
-              total_files: totalFiles,
-              processed_files: processedFiles,
-              failed_files: failedFiles,
-              last_upload: lastUpload,
-              total_chat_messages: chatMessages?.length || 0
-            };
-          })
-        );
-
-        // Obtener invitaciones pendientes
-        const { data: invitations, error: invitationsError } = await supabase
-          .from('pending_invitations')
-          .select('*')
-          .order('invited_at', { ascending: false });
-
-        if (invitationsError) {
-          console.error('Error fetching invitations:', invitationsError);
-          throw invitationsError;
-        }
-
-        console.log('Admin data fetched successfully:', { users: enrichedUsers.length, invitations: invitations?.length || 0 });
-        return {
-          users: enrichedUsers,
-          invitations: invitations || []
-        };
-      } else {
-        // Para usuarios normales, usar la función RPC
-        const { data: users, error: usersError } = await supabase
-          .rpc('get_admin_dashboard');
-
-        if (usersError) {
-          console.error('Error from RPC:', usersError);
-          throw usersError;
-        }
-
-        const { data: invitations, error: invitationsError } = await supabase
-          .from('pending_invitations')
-          .select('*')
-          .order('invited_at', { ascending: false });
-
-        if (invitationsError) {
-          console.error('Error fetching invitations:', invitationsError);
-          throw invitationsError;
-        }
-
-        return {
-          users: users || [],
-          invitations: invitations || []
-        };
+      if (usersError) {
+        console.error('Error from RPC:', usersError);
+        toast.error('Error al cargar datos del panel admin');
+        return { users: [], invitations: [] };
       }
+
+      const { data: invitations, error: invitationsError } = await supabase
+        .from('pending_invitations')
+        .select('*')
+        .order('invited_at', { ascending: false });
+
+      if (invitationsError) {
+        console.error('Error fetching invitations:', invitationsError);
+        toast.error('Error al cargar invitaciones');
+        return { users: users || [], invitations: [] };
+      }
+
+      return {
+        users: users || [],
+        invitations: invitations || []
+      };
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
       toast.error('Error al cargar datos del panel admin');
@@ -258,36 +184,10 @@ export const useAdmin = () => {
     }
   };
 
-  const setupMasterUser = async () => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase.functions.invoke('setup-master-user');
-
-      if (error) {
-        throw error;
-      }
-
-      if (data && data.success) {
-        toast.success('Usuario master configurado exitosamente');
-        return { success: true };
-      } else {
-        throw new Error(data?.error || 'Error al configurar usuario master');
-      }
-    } catch (error: any) {
-      console.error('Error setting up master user:', error);
-      toast.error(error.message || 'Error al configurar usuario master');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return {
     loading,
     fetchAdminData,
     createInvitation,
-    manageUser,
-    setupMasterUser
+    manageUser
   };
 };

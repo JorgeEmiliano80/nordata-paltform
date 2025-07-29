@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -6,10 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ChatRequest {
+interface ChatbotRequest {
   message: string;
   fileId?: string;
-  conversationHistory?: Array<{ message: string; response: string; }>;
+  userId: string;
 }
 
 serve(async (req) => {
@@ -21,18 +22,12 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key não configurada');
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verificar autenticação
+    // Verificar autenticación
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('Token de autorização necessário');
+      throw new Error('Token de autorización requerido');
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -42,115 +37,71 @@ serve(async (req) => {
       throw new Error('Token inválido');
     }
 
-    const { message, fileId, conversationHistory }: ChatRequest = await req.json();
+    const { message, fileId, userId }: ChatbotRequest = await req.json();
 
-    console.log(`Mensagem do chatbot para usuário ${user.id}: ${message}`);
+    if (!message || !userId) {
+      throw new Error('Mensaje y usuario requeridos');
+    }
 
-    // Buscar contexto do arquivo se fileId for fornecido
+    console.log(`Procesando mensaje del chatbot para usuario: ${userId}`);
+
+    // Obtener contexto del archivo si se proporciona
     let fileContext = '';
-    let fileData = null;
-    
     if (fileId) {
       const { data: file, error: fileError } = await supabase
         .from('files')
-        .select('*, insights(*)')
+        .select('file_name, metadata')
         .eq('id', fileId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (!fileError && file) {
-        fileData = file;
-        fileContext = `
-        Contexto do arquivo:
-        - Nome: ${file.file_name}
-        - Tipo: ${file.file_type}
-        - Status: ${file.status}
-        - Data de upload: ${file.uploaded_at}
-        - Insights disponíveis: ${file.insights?.length || 0}
-        `;
+        fileContext = `Archivo: ${file.file_name}\n`;
+        
+        // Obtener insights del archivo
+        const { data: insights, error: insightsError } = await supabase
+          .from('insights')
+          .select('*')
+          .eq('file_id', fileId)
+          .limit(5);
 
-        if (file.insights && file.insights.length > 0) {
-          fileContext += '\nInsights gerados:\n';
-          file.insights.forEach((insight: any, index: number) => {
-            fileContext += `${index + 1}. ${insight.title}: ${insight.description}\n`;
+        if (!insightsError && insights && insights.length > 0) {
+          fileContext += `Insights disponibles:\n`;
+          insights.forEach((insight) => {
+            fileContext += `- ${insight.title}: ${insight.description}\n`;
           });
         }
       }
     }
 
-    // Preparar contexto da conversa
+    // Obtener historial reciente de chat
+    const { data: chatHistory, error: historyError } = await supabase
+      .from('chat_history')
+      .select('message, response, is_user_message')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
     let conversationContext = '';
-    if (conversationHistory && conversationHistory.length > 0) {
-      conversationContext = 'Histórico da conversa:\n';
-      conversationHistory.slice(-5).forEach((turn, index) => {
-        conversationContext += `Usuário: ${turn.message}\nAssistente: ${turn.response}\n\n`;
+    if (!historyError && chatHistory && chatHistory.length > 0) {
+      conversationContext = 'Contexto de conversación reciente:\n';
+      chatHistory.reverse().forEach((msg) => {
+        if (msg.is_user_message) {
+          conversationContext += `Usuario: ${msg.message}\n`;
+        } else {
+          conversationContext += `Asistente: ${msg.response}\n`;
+        }
       });
     }
 
-    // Preparar prompt para OpenAI
-    const systemPrompt = `Você é um assistente de IA especializado em análise de dados da plataforma NORDATA.AI. 
-    Você ajuda usuários a entender seus dados e insights gerados pelo processamento.
-    
-    Diretrizes:
-    - Seja preciso e útil nas respostas
-    - Use os insights disponíveis para fornecer análises relevantes
-    - Se não houver dados suficientes, sugira ações que o usuário pode tomar
-    - Mantenha um tom profissional mas amigável
-    - Responda em português brasileiro
-    
-    ${fileContext}
-    ${conversationContext}`;
-
-    // Chamar OpenAI API
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        max_tokens: 500,
-        temperature: 0.7,
-      }),
-    });
-
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      throw new Error(`Erro da OpenAI: ${openaiResponse.status} - ${errorText}`);
-    }
-
-    const openaiResult = await openaiResponse.json();
-    const assistantResponse = openaiResult.choices[0]?.message?.content || 'Desculpe, não consegui processar sua pergunta.';
-
-    // Salvar no histórico de chat
-    await supabase
-      .from('chat_history')
-      .insert([
-        {
-          user_id: user.id,
-          file_id: fileId,
-          message: message,
-          response: assistantResponse,
-          is_user_message: true
-        }
-      ]);
-
-    console.log(`Resposta gerada para usuário ${user.id}`);
+    // Generar respuesta del chatbot (simulada)
+    const response = await generateChatbotResponse(message, fileContext, conversationContext);
 
     return new Response(
       JSON.stringify({
         success: true,
-        response: assistantResponse,
-        fileContext: fileData ? {
-          fileName: fileData.file_name,
-          status: fileData.status,
-          insightsCount: fileData.insights?.length || 0
-        } : null
+        response: response,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 200,
@@ -162,12 +113,13 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Erro no chatbot:', error);
+    console.error('Error en chatbot:', error);
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error.message,
+        response: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.'
       }),
       {
         status: 500,
@@ -179,3 +131,38 @@ serve(async (req) => {
     );
   }
 });
+
+async function generateChatbotResponse(message: string, fileContext: string, conversationContext: string): Promise<string> {
+  // Simular procesamiento de IA
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  const lowerMessage = message.toLowerCase();
+
+  // Respuestas basadas en contexto
+  if (fileContext && lowerMessage.includes('archivo')) {
+    return `Veo que estás preguntando sobre tu archivo. ${fileContext}\n\n¿Hay algo específico que te gustaría saber sobre los datos o insights disponibles?`;
+  }
+
+  if (lowerMessage.includes('insights') || lowerMessage.includes('resultados')) {
+    return 'Los insights son análisis automatizados que se generan después del procesamiento de tus datos. Estos pueden incluir tendencias, anomalías, patrones y resúmenes estadísticos. ¿Te gustaría saber más sobre algún tipo específico de insight?';
+  }
+
+  if (lowerMessage.includes('procesar') || lowerMessage.includes('processing')) {
+    return 'El procesamiento de archivos se realiza a través de nuestra integración con Databricks. Una vez que subes un archivo, puedes enviarlo a procesamiento haciendo clic en el botón "Procesar". El sistema analizará tus datos y generará insights automatizados.';
+  }
+
+  if (lowerMessage.includes('subir') || lowerMessage.includes('upload')) {
+    return 'Puedes subir archivos en formato CSV, JSON o XLSX. Simplemente ve a la sección de "Subir Archivo" y arrastra tu archivo o haz clic para seleccionarlo. El archivo se guardará de forma segura y estará listo para procesamiento.';
+  }
+
+  if (lowerMessage.includes('ayuda') || lowerMessage.includes('help')) {
+    return 'Estoy aquí para ayudarte con:\n- Subida y procesamiento de archivos\n- Interpretación de insights\n- Navegación por la plataforma\n- Preguntas sobre tus datos\n\n¿En qué te puedo ayudar específicamente?';
+  }
+
+  if (lowerMessage.includes('hola') || lowerMessage.includes('hello')) {
+    return '¡Hola! Soy tu asistente de análisis de datos. Puedo ayudarte con el procesamiento de archivos, interpretación de insights y responder preguntas sobre tus datos. ¿En qué puedo ayudarte hoy?';
+  }
+
+  // Respuesta genérica
+  return 'Entiendo tu pregunta. Como asistente de análisis de datos, puedo ayudarte con el procesamiento de archivos, interpretación de insights y navegación por la plataforma. ¿Podrías ser más específico sobre lo que necesitas?';
+}

@@ -1,296 +1,675 @@
 
-# NORDATA.AI - Documentação Técnica
+# NordataPlatform - Documentación Técnica
 
-## 🏗️ Arquitetura da Plataforma
+## Índice
 
-### Visão Geral
-A plataforma NORDATA.AI é uma aplicação de análise de dados que utiliza:
-- **Frontend**: React + TypeScript + Tailwind CSS
+1. [Arquitectura General](#arquitectura-general)
+2. [Autenticación y Roles](#autenticación-y-roles)
+3. [Gestión de Archivos](#gestión-de-archivos)
+4. [Procesamiento con Databricks](#procesamiento-con-databricks)
+5. [Sistema de Chat](#sistema-de-chat)
+6. [Panel de Administración](#panel-de-administración)
+7. [Base de Datos](#base-de-datos)
+8. [API y Endpoints](#api-y-endpoints)
+9. [Cumplimiento Legal](#cumplimiento-legal)
+10. [Instalación y Configuración](#instalación-y-configuración)
+
+## Arquitectura General
+
+### Stack Tecnológico
+
+- **Frontend**: React 18 + TypeScript + Vite
 - **Backend**: Supabase (PostgreSQL + Edge Functions)
-- **Autenticação**: Supabase Auth
+- **Autenticación**: Supabase Auth
+- **Base de Datos**: PostgreSQL con Row Level Security (RLS)
 - **Storage**: Supabase Storage
-- **Processamento**: API Externa (Databricks)
+- **UI**: Tailwind CSS + Radix UI + Shadcn/ui
+- **Procesamiento**: Databricks (integración externa)
 
-### Estrutura de Diretórios
+### Estructura del Proyecto
+
 ```
 src/
-├── components/         # Componentes reutilizáveis
-├── hooks/             # Hooks personalizados
-├── pages/             # Páginas da aplicação
-├── integrations/      # Integrações com APIs
-└── lib/              # Utilitários
-
-supabase/
-├── functions/         # Edge Functions
-├── migrations/        # Migrações do banco
-└── config.toml       # Configuração do Supabase
+├── components/          # Componentes reutilizables
+│   ├── ui/             # Componentes de UI base
+│   ├── FileUpload.tsx  # Componente de subida de archivos
+│   ├── FilesList.tsx   # Lista de archivos del usuario
+│   ├── Navbar.tsx      # Navegación principal
+│   ├── ProtectedRoute.tsx # Rutas protegidas
+│   └── AdminRoute.tsx  # Rutas solo para admin
+├── context/            # Contextos de React
+│   └── AuthContext.tsx # Contexto de autenticación
+├── hooks/              # Hooks personalizados
+│   ├── useAuth.ts      # Hook de autenticación
+│   ├── useFiles.ts     # Hook para gestión de archivos
+│   ├── useAdmin.ts     # Hook para funciones admin
+│   ├── useChatbot.ts   # Hook para chatbot
+│   └── useNotifications.ts # Hook para notificaciones
+├── pages/              # Páginas principales
+│   ├── Login.tsx       # Página de login
+│   ├── Dashboard.tsx   # Dashboard principal
+│   ├── Upload.tsx      # Página de subida de archivos
+│   ├── Chatbot.tsx     # Interfaz del chatbot
+│   ├── AdminPanel.tsx  # Panel de administración
+│   └── PrivacyPolicy.tsx # Política de privacidad
+└── integrations/       # Integraciones externas
+    └── supabase/       # Configuración de Supabase
 ```
 
-## 🔐 Sistema de Autenticação
+## Autenticación y Roles
 
-### Tipos de Usuário
-1. **Admin (Master User)**
-   - Email: `iamjorgear80@gmail.com`
-   - Senha: `Jorge41304254#`
-   - Permissões: Acesso total à plataforma
+### Sistema de Roles
 
-2. **Cliente**
-   - Acesso apenas por convite
-   - Pode processar arquivos e usar chatbot
-   - Acesso limitado aos próprios dados
+El sistema implementa dos roles principales:
 
-### Fluxo de Autenticação
-1. **Login Master**: Usa Edge Function `master-auth`
-2. **Login Cliente**: Usa Supabase Auth tradicional
-3. **Convites**: Criados pelo admin via Edge Function `admin-invite-user`
+1. **Admin**: Puede crear usuarios, gestionar la plataforma y acceder a todos los datos
+2. **Client**: Puede subir archivos, usar el chatbot y acceder solo a sus propios datos
 
-## 📊 Estrutura do Banco de Dados
+### Flujo de Autenticación
 
-### Tabelas Principais
+1. **Registro**: Solo por invitación del administrador
+2. **Login**: Email y contraseña
+3. **Verificación**: Automática con RLS en base de datos
+4. **Sesión**: Mantenida por Supabase Auth
 
-#### `profiles`
+### Hooks de Autenticación
+
+```typescript
+// src/hooks/useAuth.ts
+const { user, profile, loading, signIn, signOut, isAdmin } = useAuth();
+```
+
+**Funcionalidades del Hook:**
+
+- `signIn(email, password)`: Autentica usuario
+- `signOut()`: Cierra sesión
+- `isAdmin()`: Verifica si el usuario es administrador
+- `fetchUserProfile()`: Obtiene perfil del usuario
+
+## Gestión de Archivos
+
+### Tipos de Archivo Soportados
+
+- **CSV**: Comma Separated Values
+- **JSON**: JavaScript Object Notation
+- **XLSX**: Excel (OpenXML)
+
+### Flujo de Subida
+
+1. **Validación**: Tipo y tamaño de archivo
+2. **Upload**: Supabase Storage bucket `data-files`
+3. **Registro**: Información en tabla `files`
+4. **Estados**: `uploaded` → `processing` → `done`/`error`
+
+### Hook de Archivos
+
+```typescript
+// src/hooks/useFiles.ts
+const { 
+  files, 
+  uploadFile, 
+  processFile, 
+  deleteFile, 
+  getFileInsights 
+} = useFiles();
+```
+
+**Funcionalidades:**
+
+- `uploadFile(file)`: Sube archivo a storage y registra en DB
+- `processFile(fileId)`: Envía archivo a procesamiento
+- `deleteFile(fileId)`: Elimina archivo y datos relacionados
+- `getFileInsights(fileId)`: Obtiene insights del archivo
+
+### Componentes de Archivos
+
+#### FileUpload.tsx
+
+```typescript
+interface FileUploadProps {
+  onUploadComplete?: (fileId: string) => void;
+  acceptedFileTypes?: string[];
+  maxFileSize?: number;
+  className?: string;
+}
+```
+
+**Características:**
+
+- Drag & drop funcional
+- Validación de tipos y tamaños
+- Barra de progreso
+- Mensajes de error y éxito
+- Integración completa con backend
+
+#### FilesList.tsx
+
+**Funcionalidades:**
+
+- Lista archivos del usuario
+- Botón "Procesar" para archivos subidos
+- Botón "Ver Resultados" para archivos procesados
+- Botón "Eliminar" con confirmación
+- Estados visuales claros
+
+## Procesamiento con Databricks
+
+### Integración
+
+El procesamiento se realiza mediante Edge Functions que se conectan con Databricks:
+
+#### Edge Function: process-file
+
+```typescript
+// supabase/functions/process-file/index.ts
+```
+
+**Flujo:**
+
+1. **Validación**: Autenticación y permisos
+2. **Registro**: Log de inicio de procesamiento
+3. **Databricks**: Envío de archivo (simulado)
+4. **Asíncrono**: Procesamiento en segundo plano
+5. **Callback**: Actualización de estado y generación de insights
+
+### Estados de Procesamiento
+
+- `uploaded`: Archivo subido, listo para procesar
+- `processing`: Enviado a Databricks
+- `done`: Procesamiento completado con insights
+- `error`: Error en el procesamiento
+
+### Insights Generados
+
+Los insights se guardan en la tabla `insights` con tipos:
+
+- `summary`: Resumen estadístico
+- `trend`: Tendencias detectadas
+- `anomaly`: Anomalías encontradas
+- `cluster`: Agrupaciones de datos
+- `recommendation`: Recomendaciones
+
+## Sistema de Chat
+
+### Arquitectura del Chatbot
+
+El chatbot utiliza:
+
+- **Frontend**: Interfaz de chat en tiempo real
+- **Backend**: Edge Function para procesamiento
+- **Contexto**: Archivos y conversaciones previas
+- **Persistencia**: Historial completo en base de datos
+
+### Hook de Chatbot
+
+```typescript
+// src/hooks/useChatbot.ts
+const { 
+  messages, 
+  sendMessage, 
+  fetchChatHistory, 
+  clearHistory 
+} = useChatbot();
+```
+
+**Funcionalidades:**
+
+- `sendMessage(message, fileId?)`: Envía mensaje y obtiene respuesta
+- `fetchChatHistory(fileId?)`: Carga historial de conversación
+- `clearHistory(fileId?)`: Limpia historial
+
+### Edge Function: chatbot
+
+```typescript
+// supabase/functions/chatbot/index.ts
+```
+
+**Características:**
+
+- Procesamiento de lenguaje natural
+- Contexto de archivos específicos
+- Historial de conversación
+- Respuestas inteligentes basadas en datos
+
+### Componente Chatbot
+
+#### Interfaz de Chat
+
+- **Mensajes**: Diferenciados por usuario/bot
+- **Timestamp**: Hora de cada mensaje
+- **Contexto**: Selección de archivo específico
+- **Acciones**: Botones de acción rápida
+- **Historial**: Persistente entre sesiones
+
+## Panel de Administración
+
+### Funcionalidades del Admin
+
+#### Gestión de Usuarios
+
+- **Crear Invitaciones**: Sistema de invitación por email
+- **Activar/Desactivar**: Control de acceso de usuarios
+- **Actualizar Perfiles**: Modificar información de usuarios
+- **Estadísticas**: Métricas de uso por usuario
+
+#### Hook de Administración
+
+```typescript
+// src/hooks/useAdmin.ts
+const { 
+  fetchAdminData, 
+  createInvitation, 
+  manageUser 
+} = useAdmin();
+```
+
+**Funcionalidades:**
+
+- `fetchAdminData()`: Obtiene datos del dashboard
+- `createInvitation(email, name, company, industry)`: Crea invitación
+- `manageUser(action, userId, data)`: Gestiona usuarios
+
+### Sistema de Invitaciones
+
+#### Flujo de Invitación
+
+1. **Creación**: Admin crea invitación
+2. **Token**: Se genera token único
+3. **Envío**: URL de invitación (manual/email)
+4. **Registro**: Usuario se registra con token
+5. **Activación**: Perfil se activa automáticamente
+
+#### Edge Function: admin-invite-user
+
+```typescript
+// supabase/functions/admin-invite-user/index.ts
+```
+
+**Características:**
+
+- Validación de permisos admin
+- Generación de tokens únicos
+- Prevención de duplicados
+- Expiración automática (7 días)
+
+## Base de Datos
+
+### Esquema de Tablas
+
+#### profiles
 ```sql
-- user_id: UUID (referência ao auth.users)
-- full_name: TEXT
-- company_name: TEXT
-- industry: TEXT
-- role: ENUM ('admin', 'client')
-- is_active: BOOLEAN
-- accepted_terms: BOOLEAN
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) UNIQUE NOT NULL,
+    full_name TEXT NOT NULL,
+    company_name TEXT,
+    industry TEXT,
+    role user_role NOT NULL DEFAULT 'client',
+    accepted_terms BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    invitation_token TEXT,
+    invited_by UUID REFERENCES auth.users(id),
+    invited_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
 ```
 
-#### `files`
+#### files
 ```sql
-- id: UUID (primary key)
-- user_id: UUID (foreign key)
-- file_name: TEXT
-- file_type: TEXT
-- file_size: BIGINT
-- storage_url: TEXT
-- status: ENUM ('uploaded', 'processing', 'done', 'error')
-- metadata: JSONB
+CREATE TABLE files (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) NOT NULL,
+    file_name TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_size BIGINT,
+    storage_url TEXT NOT NULL,
+    databricks_job_id TEXT,
+    status file_status DEFAULT 'uploaded',
+    error_message TEXT,
+    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    processed_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
 ```
 
-#### `insights`
+#### insights
 ```sql
-- id: UUID (primary key)
-- file_id: UUID (foreign key)
-- insight_type: ENUM ('cluster', 'anomaly', 'trend', 'summary', 'recommendation')
-- title: TEXT
-- description: TEXT
-- data: JSONB
-- confidence_score: NUMERIC
+CREATE TABLE insights (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    file_id UUID REFERENCES files(id) NOT NULL,
+    insight_type insight_type NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    data JSONB DEFAULT '{}',
+    confidence_score DECIMAL(5,4),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
 ```
-
-#### `chat_history`
-```sql
-- id: UUID (primary key)
-- user_id: UUID (foreign key)
-- file_id: UUID (foreign key, nullable)
-- message: TEXT
-- response: TEXT
-- is_user_message: BOOLEAN
-```
-
-#### `pending_invitations`
-```sql
-- id: UUID (primary key)
-- email: TEXT
-- full_name: TEXT
-- company_name: TEXT
-- industry: TEXT
-- invitation_token: TEXT
-- invited_by: UUID (foreign key)
-- expires_at: TIMESTAMP
-- used_at: TIMESTAMP (nullable)
-```
-
-## 🔄 Fluxo de Processamento de Arquivos
-
-### 1. Upload
-1. Cliente seleciona arquivo (.csv, .xlsx, .json)
-2. Validação de tipo e tamanho (máx. 50MB)
-3. Upload para Supabase Storage
-4. Criação de registro na tabela `files`
-
-### 2. Processamento
-1. Edge Function `process-file` é chamada automaticamente
-2. Arquivo é enviado para API do Databricks
-3. Status do arquivo atualizado para 'processing'
-4. Logs são registrados na tabela `processing_logs`
-
-### 3. Callback
-1. Databricks chama Edge Function `handle-databricks-callback`
-2. Resultados são salvos na tabela `insights`
-3. Status do arquivo atualizado para 'done' ou 'error'
-4. Notificações são criadas para o usuário
-
-## 🚀 Edge Functions
-
-### `master-auth`
-- **Descrição**: Autenticação do usuário master
-- **Entrada**: `{ email, password }`
-- **Saída**: `{ user, profile, token }`
-
-### `admin-invite-user`
-- **Descrição**: Criação de convites para novos usuários
-- **Entrada**: `{ email, fullName, companyName, industry }`
-- **Saída**: `{ invitationToken, inviteUrl }`
-
-### `process-file`
-- **Descrição**: Envio de arquivo para processamento
-- **Entrada**: `{ fileId, userId, fileUrl, fileName, fileType }`
-- **Saída**: `{ jobId }`
-
-### `handle-databricks-callback`
-- **Descrição**: Processamento de resultados do Databricks
-- **Entrada**: `{ jobId, fileId, userId, status, results }`
-- **Saída**: `{ success }`
-
-### `setup-master-user`
-- **Descrição**: Configuração inicial do usuário master
-- **Entrada**: Nenhuma
-- **Saída**: `{ success, user_id }`
-
-## 🎯 Funcionalidades por Página
-
-### `/login`
-- ✅ Autenticação de usuários
-- ✅ Suporte a convites por token
-- ✅ Validação de credenciais
-- ✅ Redirecionamento baseado em role
-
-### `/dashboard`
-- ✅ Estatísticas personalizadas por role
-- ✅ Arquivos recentes
-- ✅ Ações rápidas contextuais
-- ✅ Dados em tempo real
-
-### `/upload`
-- ✅ Upload drag-and-drop
-- ✅ Validação de arquivos
-- ✅ Lista de arquivos com status
-- ✅ Ações: visualizar, download, excluir, reprocessar
-
-### `/admin`
-- ✅ Gestão de usuários
-- ✅ Criação de convites
-- ✅ Estatísticas da plataforma
-- ✅ Monitoramento de processamentos
-
-### `/chatbot`
-- ✅ Chat com IA baseado nos dados
-- ✅ Histórico de conversas
-- ✅ Contexto por arquivo processado
-
-### `/analytics`
-- ✅ Visualização de insights
-- ✅ Gráficos e métricas
-- ✅ Filtros por período e tipo
-
-## 🛡️ Segurança e Compliance
-
-### LGPD e Lei 25.326
-1. **Consentimento**: Checkbox obrigatório nos termos
-2. **Minimização**: Apenas dados necessários são coletados
-3. **Acesso**: Usuários veem apenas seus próprios dados
-4. **Exclusão**: Função `cleanup_file_data` remove todos os dados relacionados
-5. **Transparência**: Política de privacidade visível
 
 ### Row Level Security (RLS)
-- Todas as tabelas possuem RLS habilitado
-- Políticas específicas por role (admin/client)
-- Funções SECURITY DEFINER para operações privilegiadas
 
-### Validações
-- Tipos de arquivo permitidos
-- Tamanho máximo de arquivo
-- Validação de tokens de convite
-- Verificação de permissões em todas as operações
+#### Políticas de Seguridad
 
-## 📱 Hooks Personalizados
+**Archivos (files)**:
+- Usuarios ven solo sus archivos
+- Admins ven todos los archivos
+- Solo el propietario puede modificar
 
-### `useAuth`
-- Gerenciamento de autenticação
-- Suporte a usuário master
-- Verificação de roles
-- Persistência de sessão
+**Insights**:
+- Usuarios ven insights de sus archivos
+- Admins ven todos los insights
+- Sistema puede insertar insights
 
-### `useFiles`
-- Operações com arquivos
-- Upload, download, exclusão
-- Estatísticas e filtros
-- Sincronização com backend
+**Chat History**:
+- Usuarios ven solo su historial
+- Admins ven todo el historial
+- Solo el usuario puede insertar mensajes
 
-### `useAdmin`
-- Funcionalidades administrativas
-- Gestão de usuários
-- Criação de convites
-- Estatísticas da plataforma
+### Funciones de Base de Datos
 
-## 🔧 Configuração e Deploy
-
-### Variáveis de Ambiente (Supabase Secrets)
+#### is_admin(user_uuid)
+```sql
+CREATE OR REPLACE FUNCTION is_admin(user_uuid UUID DEFAULT auth.uid())
+RETURNS BOOLEAN
 ```
-SUPABASE_URL=https://sveaehifwnoetwfxkasn.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-DATABRICKS_API_URL=https://databricks-api-endpoint.com
-DATABRICKS_TOKEN=dapi123456789...
+Verifica si un usuario tiene rol de administrador.
+
+#### create_invitation(email, name, company, industry)
+```sql
+CREATE OR REPLACE FUNCTION create_invitation(
+    invite_email TEXT,
+    invite_name TEXT,
+    invite_company TEXT,
+    invite_industry TEXT DEFAULT NULL
+)
+RETURNS TEXT
+```
+Crea una invitación y retorna el token.
+
+#### cleanup_file_data(file_uuid)
+```sql
+CREATE OR REPLACE FUNCTION cleanup_file_data(file_uuid UUID)
+RETURNS VOID
+```
+Elimina un archivo y todos sus datos relacionados.
+
+## API y Endpoints
+
+### Edge Functions
+
+#### /process-file
+- **Método**: POST
+- **Autenticación**: Bearer token
+- **Parámetros**: `{ fileId: string }`
+- **Respuesta**: `{ success: boolean, jobId?: string }`
+
+**Funcionalidad**: Procesa un archivo subido enviándolo a Databricks.
+
+#### /chatbot
+- **Método**: POST
+- **Autenticación**: Bearer token
+- **Parámetros**: `{ message: string, fileId?: string, userId: string }`
+- **Respuesta**: `{ success: boolean, response: string }`
+
+**Funcionalidad**: Procesa mensajes del chatbot con contexto.
+
+#### /admin-invite-user
+- **Método**: POST
+- **Autenticación**: Bearer token (admin)
+- **Parámetros**: `{ email: string, fullName: string, companyName?: string, industry?: string }`
+- **Respuesta**: `{ success: boolean, invitationToken: string, inviteUrl: string }`
+
+**Funcionalidad**: Crea invitaciones para nuevos usuarios.
+
+### Manejo de Errores
+
+Todas las funciones implementan manejo de errores consistente:
+
+```typescript
+try {
+  // Lógica principal
+  return { success: true, data };
+} catch (error) {
+  console.error('Error:', error);
+  return { success: false, error: error.message };
+}
 ```
 
-### Configuração Inicial
-1. Executar `supabase start`
-2. Aplicar migrações: `supabase db push`
-3. Configurar secrets no dashboard do Supabase
-4. Executar Edge Function `setup-master-user`
+## Cumplimiento Legal
 
-### Deploy
-1. **Frontend**: Conectar repositório ao Vercel/Netlify
-2. **Backend**: Edge Functions são deployadas automaticamente
-3. **Database**: Migrações aplicadas via Supabase CLI
+### LGPD (Brasil) y Ley 25.326 (Argentina)
 
-## 🧪 Testes e Validação
+#### Consentimiento
+- **Registro**: Consentimiento explícito al registrarse
+- **Procesamiento**: Consentimiento para procesamiento de datos
+- **Términos**: Aceptación de términos y condiciones
 
-### Fluxo de Teste Completo
-1. **Login Master**: Verificar acesso admin
-2. **Criar Convite**: Testar criação de usuário cliente
-3. **Upload Arquivo**: Validar processamento completo
-4. **Chatbot**: Testar interação com dados processados
-5. **Exclusão**: Verificar remoção completa de dados
+#### Derechos del Usuario
+- **Acceso**: Usuarios pueden ver todos sus datos
+- **Rectificación**: Perfil editable por el usuario
+- **Eliminación**: Función de eliminación completa de cuenta
+- **Portabilidad**: Descarga de datos en formato estándar
 
-### Pontos de Validação
-- ✅ Todos os botões funcionais
-- ✅ Redirecionamentos corretos
-- ✅ Validações de segurança
-- ✅ Feedback visual adequado
-- ✅ Tratamento de erros
+#### Medidas de Seguridad
+- **Encriptación**: Datos encriptados en tránsito y reposo
+- **Acceso**: Control de acceso basado en roles
+- **Auditoría**: Logs de todas las operaciones
+- **Retención**: Políticas de retención de datos
 
-## 📈 Monitoramento
+### Política de Privacidad
 
-### Logs Disponíveis
-- **Processing Logs**: Histórico de processamentos
-- **Edge Function Logs**: Logs das funções serverless
-- **Database Logs**: Queries e operações do banco
-- **Auth Logs**: Eventos de autenticação
+```typescript
+// src/pages/PrivacyPolicy.tsx
+```
 
-### Métricas Importantes
-- Tempo de processamento médio
-- Taxa de sucesso dos uploads
-- Número de insights gerados
-- Atividade por usuário
+**Contenido**:
+- Tipos de datos recopilados
+- Finalidad del procesamiento
+- Derechos del usuario
+- Medidas de seguridad
+- Contacto para ejercer derechos
 
-## 🔮 Roadmap
+## Instalación y Configuración
 
-### Próximas Funcionalidades
-1. **Notificações Push**: Alertas em tempo real
-2. **API Pública**: Endpoints para integrações externas
-3. **Dashboards Customizáveis**: Visualizações personalizadas
-4. **Relatórios Automáticos**: Exportação de insights
-5. **Auditoria Completa**: Logs detalhados de todas as operações
+### Requisitos
+
+- Node.js 18+
+- npm o yarn
+- Cuenta de Supabase
+- Cuenta de Databricks (opcional para desarrollo)
+
+### Configuración Inicial
+
+1. **Clonar repositorio**:
+```bash
+git clone <repository-url>
+cd nordataplatform
+```
+
+2. **Instalar dependencias**:
+```bash
+npm install
+```
+
+3. **Configurar variables de entorno**:
+```bash
+cp .env.example .env.local
+```
+
+4. **Configurar Supabase**:
+   - Crear proyecto en Supabase
+   - Ejecutar migraciones SQL
+   - Configurar Storage buckets
+   - Desplegar Edge Functions
+
+5. **Iniciar desarrollo**:
+```bash
+npm run dev
+```
+
+### Configuración de Supabase
+
+#### Buckets de Storage
+
+```sql
+-- Crear buckets necesarios
+INSERT INTO storage.buckets (id, name, public) VALUES 
+('data-files', 'data-files', false),
+('processed-results', 'processed-results', false);
+```
+
+#### Políticas de Storage
+
+```sql
+-- Política para data-files
+CREATE POLICY "Users can upload their own files" ON storage.objects
+FOR INSERT WITH CHECK (auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Users can view their own files" ON storage.objects
+FOR SELECT USING (auth.uid()::text = (storage.foldername(name))[1]);
+```
+
+### Configuración de Databricks
+
+#### Variables de Entorno
+
+```bash
+DATABRICKS_HOST=https://your-databricks-instance.com
+DATABRICKS_TOKEN=your-databricks-token
+DATABRICKS_CLUSTER_ID=your-cluster-id
+```
+
+#### Integración
+
+Para conectar con Databricks real:
+
+1. Modificar `supabase/functions/process-file/index.ts`
+2. Implementar llamadas reales a Databricks API
+3. Configurar webhooks para callbacks
+
+### Despliegue
+
+#### Supabase Edge Functions
+
+```bash
+supabase functions deploy process-file
+supabase functions deploy chatbot
+supabase functions deploy admin-invite-user
+```
+
+#### Frontend (Vercel/Netlify)
+
+```bash
+npm run build
+# Seguir instrucciones de la plataforma elegida
+```
+
+### Monitoreo
+
+#### Logs
+
+- **Supabase**: Dashboard → Functions → Logs
+- **PostgreSQL**: Dashboard → Database → Logs
+- **Storage**: Dashboard → Storage → Logs
+
+#### Métricas
+
+- **Usuarios activos**: Panel de administración
+- **Archivos procesados**: Dashboard de estadísticas
+- **Mensajes de chat**: Métricas de uso
+
+## Mantenimiento
+
+### Actualización de Dependencias
+
+```bash
+npm update
+npm audit fix
+```
+
+### Backup de Base de Datos
+
+```bash
+supabase db dump --local > backup.sql
+```
+
+### Limpieza de Datos
+
+```sql
+-- Eliminar archivos antiguos (ejemplo: >1 año)
+DELETE FROM files WHERE created_at < NOW() - INTERVAL '1 year';
+
+-- Limpiar invitaciones expiradas
+DELETE FROM pending_invitations WHERE expires_at < NOW() AND used_at IS NULL;
+```
+
+### Escalabilidad
+
+#### Optimizaciones
+
+- **Índices**: Agregar índices para consultas frecuentes
+- **Particionamiento**: Particionar tablas grandes por fecha
+- **Caching**: Implementar Redis para datos frecuentes
+- **CDN**: Usar CDN para archivos estáticos
+
+#### Monitoreo de Performance
+
+```sql
+-- Consultas lentas
+SELECT query, mean_time, calls 
+FROM pg_stat_statements 
+ORDER BY mean_time DESC;
+
+-- Tamaño de tablas
+SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+FROM pg_tables 
+WHERE schemaname = 'public' 
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+```
+
+## Solución de Problemas
+
+### Errores Comunes
+
+#### Error de Autenticación
+```
+Token inválido o expirado
+```
+**Solución**: Verificar configuración de Supabase Auth y tokens.
+
+#### Error de Subida de Archivos
+```
+Error al subir archivo
+```
+**Solución**: Verificar permisos de Storage y políticas RLS.
+
+#### Error de Procesamiento
+```
+Error en procesamiento de Databricks
+```
+**Solución**: Verificar logs de Edge Functions y conectividad con Databricks.
+
+### Logs de Debugging
+
+```typescript
+// Activar logs detallados
+console.log('Debug info:', {
+  user: user?.id,
+  action: 'upload_file',
+  timestamp: new Date().toISOString()
+});
+```
+
+### Contacto y Soporte
+
+Para soporte técnico:
+- **Email**: support@nordataplatform.com
+- **Documentación**: /docs
+- **Issues**: GitHub Issues
 
 ---
 
-**Última Atualização**: 28/01/2025  
-**Versão**: 1.0.0  
-**Mantido por**: NORDATA.AI Team
+*Esta documentación debe mantenerse actualizada con cada cambio en el código.*

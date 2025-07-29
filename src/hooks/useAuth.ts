@@ -23,58 +23,35 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar sesión de master almacenada
-    const checkMasterSession = () => {
-      const masterSession = localStorage.getItem('master_session');
-      if (masterSession) {
-        try {
-          const data = JSON.parse(masterSession);
-          console.log('Master session loaded:', data);
-          setUser(data.user);
-          setProfile(data.profile);
-          setSession({ user: data.user, access_token: data.token } as any);
-          setLoading(false);
-          return true;
-        } catch (error) {
-          console.error('Error parsing master session:', error);
-          localStorage.removeItem('master_session');
-        }
-      }
-      return false;
-    };
-
-    // Si no hay sesión de master, configurar listener normal
-    if (!checkMasterSession()) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          console.log('Auth state changed:', event, session?.user?.id);
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            // Buscar perfil del usuario
-            setTimeout(async () => {
-              await fetchUserProfile(session.user.id);
-            }, 100);
-          } else {
-            setProfile(null);
-          }
-          setLoading(false);
-        }
-      );
-
-      // Verificar sessión existente
-      supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
+        
         if (session?.user) {
-          fetchUserProfile(session.user.id);
+          // Buscar perfil del usuario
+          setTimeout(async () => {
+            await fetchUserProfile(session.user.id);
+          }, 100);
+        } else {
+          setProfile(null);
         }
         setLoading(false);
-      });
+      }
+    );
 
-      return () => subscription.unsubscribe();
-    }
+    // Verificar sessión existente
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
@@ -101,51 +78,6 @@ export const useAuth = () => {
   };
 
   const signIn = async (email: string, password: string) => {
-    // Verificar si es el usuario master
-    if (email === 'iamjorgear80@gmail.com' && password === 'Jorge41304254#') {
-      try {
-        console.log('Attempting master login...');
-        const { data, error } = await supabase.functions.invoke('master-auth', {
-          body: { email, password }
-        });
-
-        if (error) {
-          console.error('Master auth error:', error);
-          return { error: { message: 'Error de conexión con el servidor' } };
-        }
-
-        if (data && data.success) {
-          console.log('Master login successful');
-          
-          // Almacenar datos del master localmente
-          localStorage.setItem('master_session', JSON.stringify(data));
-          
-          // Configurar estados
-          setUser({
-            id: data.user.id,
-            email: data.user.email,
-            user_metadata: data.user.user_metadata,
-            aud: 'authenticated'
-          } as any);
-          
-          setProfile(data.profile);
-          setSession({
-            user: data.user,
-            access_token: data.token
-          } as any);
-
-          return { error: null };
-        } else {
-          console.error('Master login failed:', data?.error);
-          return { error: { message: data?.error || 'Credenciales inválidas' } };
-        }
-      } catch (error: any) {
-        console.error('Error en login master:', error);
-        return { error: { message: 'Error de conexión' } };
-      }
-    }
-
-    // Login normal para otros usuarios
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -190,18 +122,6 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
-    // Verificar se é sessão de master
-    const masterSession = localStorage.getItem('master_session');
-    if (masterSession) {
-      console.log('Logging out master user');
-      localStorage.removeItem('master_session');
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      return { error: null };
-    }
-
-    // Sign out normal para usuarios regulares
     const { error } = await supabase.auth.signOut();
     return { error };
   };

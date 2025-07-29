@@ -1,243 +1,339 @@
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Send, Bot, User, Brain, Zap, FileText } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Send, 
+  Bot, 
+  User, 
+  Trash2, 
+  MessageSquare,
+  FileText,
+  Loader2,
+  AlertCircle,
+  Info
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import Navbar from '@/components/Navbar';
+import { useChatbot } from '@/hooks/useChatbot';
+import { useFiles } from '@/hooks/useFiles';
 
-const ChatbotPage = () => {
+const ChatbotPage: React.FC = () => {
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      content: 'Hola! Soy tu asistente de análisis de datos. ¿En qué puedo ayudarte hoy?',
-      timestamp: new Date().toISOString(),
-    },
-    {
-      id: 2,
-      type: 'user',
-      content: '¿Puedes analizar las tendencias de ventas en mis datos?',
-      timestamp: new Date().toISOString(),
-    },
-    {
-      id: 3,
-      type: 'bot',
-      content: 'Por supuesto! He analizado tu archivo ventas_2024.csv. Las ventas muestran un crecimiento del 15% en el último trimestre, con un pico significativo en productos de tecnología.',
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const [selectedFileId, setSelectedFileId] = useState<string | undefined>(undefined);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const { messages, loading, sending, sendMessage, fetchChatHistory, clearHistory } = useChatbot();
+  const { files } = useFiles();
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-    const newMessage = {
-      id: messages.length + 1,
-      type: 'user' as const,
-      content: message,
-      timestamp: new Date().toISOString(),
-    };
+  // Load chat history on mount
+  useEffect(() => {
+    fetchChatHistory(selectedFileId);
+  }, [selectedFileId]);
 
-    setMessages([...messages, newMessage]);
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || sending) return;
+
+    const messageToSend = message.trim();
     setMessage('');
-
-    // Simular respuesta del bot
-    setTimeout(() => {
-      const botResponse = {
-        id: messages.length + 2,
-        type: 'bot' as const,
-        content: 'Entendido. Estoy procesando tu consulta con los datos disponibles...',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, botResponse]);
-    }, 1000);
+    
+    const result = await sendMessage(messageToSend, selectedFileId);
+    if (!result.success) {
+      setMessage(messageToSend); // Restore message on error
+    }
   };
 
-  const quickQuestions = [
-    '¿Cuáles son mis mejores productos?',
-    'Analizar tendencias de clientes',
-    'Mostrar insights de ventas',
-    'Predicciones para el próximo mes',
-  ];
+  const handleClearHistory = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar todo el historial de chat?')) {
+      return;
+    }
+
+    await clearHistory(selectedFileId);
+  };
+
+  const getProcessedFiles = () => {
+    return files.filter(file => file.status === 'done');
+  };
+
+  const formatMessageTime = (timestamp: string) => {
+    return format(new Date(timestamp), 'HH:mm', { locale: es });
+  };
+
+  const groupedMessages = messages.reduce((groups: any[], message, index) => {
+    const prevMessage = messages[index - 1];
+    const currentDate = new Date(message.created_at).toDateString();
+    const prevDate = prevMessage ? new Date(prevMessage.created_at).toDateString() : null;
+
+    if (currentDate !== prevDate) {
+      groups.push({
+        type: 'date',
+        date: currentDate,
+        messages: [message]
+      });
+    } else {
+      groups[groups.length - 1].messages.push(message);
+    }
+
+    return groups;
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Asistente de IA
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
+              Asistente IA
             </h1>
             <p className="text-muted-foreground text-lg">
-              Consulte sobre sus datos con inteligencia artificial avanzada
+              Chatea con tu asistente de análisis de datos
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Chat Area */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Chat Interface */}
             <div className="lg:col-span-3">
-              <Card className="h-[600px] flex flex-col relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5" />
-                <CardHeader className="relative border-b border-border/50">
-                  <CardTitle className="flex items-center">
-                    <Brain className="h-5 w-5 mr-2 text-primary" />
-                    Conversación
-                  </CardTitle>
-                  <CardDescription>
-                    Asistente conectado con sus datos
-                  </CardDescription>
+              <Card className="h-[700px] flex flex-col">
+                <CardHeader className="border-b">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5" />
+                      Chat
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      {selectedFileId && (
+                        <Badge variant="outline" className="text-xs">
+                          <FileText className="h-3 w-3 mr-1" />
+                          Archivo seleccionado
+                        </Badge>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearHistory}
+                        disabled={messages.length === 0}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
-                
-                <CardContent className="flex-1 p-0 relative">
-                  <div className="h-full flex flex-col">
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      {messages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                              msg.type === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-card border border-border/50'
-                            }`}
-                          >
-                            <div className="flex items-center space-x-2 mb-1">
-                              {msg.type === 'user' ? (
-                                <User className="h-4 w-4" />
-                              ) : (
-                                <Bot className="h-4 w-4 text-primary" />
-                              )}
-                              <span className="text-xs opacity-75">
-                                {msg.type === 'user' ? 'Tú' : 'Asistente IA'}
-                              </span>
-                            </div>
-                            <p className="text-sm">{msg.content}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Input */}
-                    <div className="border-t border-border/50 p-4">
-                      <div className="flex space-x-2">
-                        <Input
-                          placeholder="Pregunta sobre tus datos..."
-                          value={message}
-                          onChange={(e) => setMessage(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          className="flex-1"
-                        />
-                        <Button onClick={handleSendMessage} className="shrink-0">
-                          <Send className="h-4 w-4" />
-                        </Button>
+
+                <CardContent className="flex-1 p-0">
+                  <ScrollArea className="h-[500px] p-4">
+                    {loading ? (
+                      <div className="flex justify-center items-center h-full">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       </div>
-                    </div>
+                    ) : messages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <Bot className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                          ¡Hola! Soy tu asistente de análisis de datos
+                        </h3>
+                        <p className="text-muted-foreground">
+                          Puedo ayudarte con preguntas sobre tus archivos, insights y análisis de datos.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {groupedMessages.map((group, groupIndex) => (
+                          <div key={groupIndex}>
+                            {/* Date separator */}
+                            <div className="flex justify-center my-4">
+                              <Badge variant="outline" className="text-xs">
+                                {format(new Date(group.date), 'PPP', { locale: es })}
+                              </Badge>
+                            </div>
+
+                            {/* Messages */}
+                            {group.messages.map((msg: any) => (
+                              <div key={msg.id} className="space-y-2">
+                                {msg.is_user_message ? (
+                                  <div className="flex justify-end">
+                                    <div className="max-w-[70%] bg-primary text-primary-foreground rounded-lg p-3">
+                                      <p className="text-sm">{msg.message}</p>
+                                      <p className="text-xs opacity-70 mt-1">
+                                        {formatMessageTime(msg.created_at)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex justify-start">
+                                    <div className="max-w-[70%] bg-muted rounded-lg p-3">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Bot className="h-4 w-4 text-primary" />
+                                        <span className="text-xs font-medium">Asistente</span>
+                                      </div>
+                                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {formatMessageTime(msg.created_at)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                        
+                        {sending && (
+                          <div className="flex justify-start">
+                            <div className="max-w-[70%] bg-muted rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <Bot className="h-4 w-4 text-primary" />
+                                <span className="text-xs font-medium">Asistente</span>
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Escribiendo...
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div ref={messagesEndRef} />
+                      </div>
+                    )}
+                  </ScrollArea>
+
+                  {/* Message Input */}
+                  <div className="border-t p-4">
+                    <form onSubmit={handleSendMessage} className="flex gap-2">
+                      <Input
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Escribe tu mensaje..."
+                        disabled={sending}
+                        className="flex-1"
+                      />
+                      <Button type="submit" disabled={!message.trim() || sending}>
+                        {sending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </form>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Quick Questions */}
-              <Card className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-accent/5 to-primary/5" />
-                <CardHeader className="relative">
-                  <CardTitle className="flex items-center text-lg">
-                    <Zap className="h-5 w-5 mr-2 text-primary" />
-                    Preguntas Rápidas
-                  </CardTitle>
+            <div className="space-y-4">
+              {/* File Selection */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Contexto del Archivo</CardTitle>
                 </CardHeader>
-                <CardContent className="relative space-y-2">
-                  {quickQuestions.map((question, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      className="w-full justify-start text-left h-auto p-3 hover:bg-accent/50"
-                      onClick={() => setMessage(question)}
-                    >
-                      {question}
-                    </Button>
-                  ))}
+                <CardContent>
+                  <Select value={selectedFileId} onValueChange={setSelectedFileId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar archivo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">Chat General</SelectItem>
+                      {getProcessedFiles().map((file) => (
+                        <SelectItem key={file.id} value={file.id}>
+                          {file.file_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {selectedFileId && selectedFileId !== 'general' 
+                      ? 'El asistente responderá con contexto del archivo seleccionado'
+                      : 'El asistente responderá preguntas generales sobre la plataforma'
+                    }
+                  </p>
                 </CardContent>
               </Card>
 
-              {/* Data Sources */}
-              <Card className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5" />
-                <CardHeader className="relative">
-                  <CardTitle className="flex items-center text-lg">
-                    <FileText className="h-5 w-5 mr-2 text-primary" />
-                    Fuentes de Datos
-                  </CardTitle>
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
                 </CardHeader>
-                <CardContent className="relative space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-success rounded-full" />
-                      <span className="text-sm">ventas_2024.csv</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      Activo
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-data-flow rounded-full" />
-                      <span className="text-sm">inventario.xlsx</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      Procesando
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-success rounded-full" />
-                      <span className="text-sm">clientes.json</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      Activo
-                    </Badge>
-                  </div>
+                <CardContent className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-sm"
+                    onClick={() => setMessage('¿Cómo puedo subir un archivo?')}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Subir archivo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-sm"
+                    onClick={() => setMessage('¿Qué tipos de insights puedo obtener?')}
+                  >
+                    <Info className="h-4 w-4 mr-2" />
+                    Tipos de insights
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-sm"
+                    onClick={() => setMessage('¿Cómo funciona el procesamiento de datos?')}
+                  >
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Procesamiento
+                  </Button>
                 </CardContent>
               </Card>
 
-              {/* AI Capabilities */}
-              <Card className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-accent/5 to-primary/5" />
-                <CardHeader className="relative">
-                  <CardTitle className="flex items-center text-lg">
-                    <Brain className="h-5 w-5 mr-2 text-primary" />
-                    Capacidades IA
-                  </CardTitle>
+              {/* Usage Tips */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Consejos de Uso</CardTitle>
                 </CardHeader>
-                <CardContent className="relative space-y-2">
-                  <div className="text-sm space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      <span>Análisis de tendencias</span>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-start gap-2">
+                      <span className="w-2 h-2 bg-primary rounded-full mt-2"></span>
+                      <div>
+                        <p className="font-medium">Selecciona un archivo</p>
+                        <p className="text-muted-foreground text-xs">
+                          Para obtener respuestas específicas sobre tus datos
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      <span>Segmentación de clientes</span>
+                    <div className="flex items-start gap-2">
+                      <span className="w-2 h-2 bg-primary rounded-full mt-2"></span>
+                      <div>
+                        <p className="font-medium">Sé específico</p>
+                        <p className="text-muted-foreground text-xs">
+                          Pregunta sobre patrones, tendencias o insights específicos
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      <span>Predicciones de ventas</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      <span>Detección de anomalías</span>
+                    <div className="flex items-start gap-2">
+                      <span className="w-2 h-2 bg-primary rounded-full mt-2"></span>
+                      <div>
+                        <p className="font-medium">Usa lenguaje natural</p>
+                        <p className="text-muted-foreground text-xs">
+                          No necesitas comandos especiales, solo pregunta normalmente
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

@@ -1,211 +1,155 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface ChatMessage {
   id: string;
+  user_id: string;
+  file_id?: string;
   message: string;
-  response: string | null;
+  response?: string;
   is_user_message: boolean;
   created_at: string;
-  file_id?: string;
 }
 
-export interface ChatConversation {
-  message: string;
-  response: string;
-  timestamp: string;
-  isUser: boolean;
-}
-
-export const useChatbot = (fileId?: string) => {
-  const [messages, setMessages] = useState<ChatConversation[]>([]);
+export const useChatbot = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    if (fileId) {
-      fetchChatHistory();
-    } else {
-      fetchRecentChatHistory();
-    }
-  }, [fileId]);
-
-  const fetchChatHistory = async () => {
+  const fetchChatHistory = async (fileId?: string) => {
     try {
-      const query = supabase
+      setLoading(true);
+      
+      let query = supabase
         .from('chat_history')
         .select('*')
         .order('created_at', { ascending: true });
 
       if (fileId) {
-        query.eq('file_id', fileId);
+        query = query.eq('file_id', fileId);
       }
 
-      const { data, error } = await query.limit(50);
+      const { data, error } = await query;
 
       if (error) {
-        console.error('Erro ao buscar histórico:', error);
+        console.error('Error fetching chat history:', error);
+        toast.error('Error al cargar historial de chat');
         return;
       }
 
-      setChatHistory(data || []);
-      
-      // Converter para formato de conversa
-      const conversations: ChatConversation[] = [];
-      (data || []).forEach(item => {
-        conversations.push({
-          message: item.message,
-          response: item.response || '',
-          timestamp: item.created_at,
-          isUser: true
-        });
-        
-        if (item.response) {
-          conversations.push({
-            message: item.response,
-            response: '',
-            timestamp: item.created_at,
-            isUser: false
-          });
-        }
-      });
-
-      setMessages(conversations);
+      setMessages(data || []);
     } catch (error) {
-      console.error('Erro ao buscar histórico:', error);
-    }
-  };
-
-  const fetchRecentChatHistory = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('chat_history')
-        .select('*')
-        .is('file_id', null)
-        .order('created_at', { ascending: true })
-        .limit(20);
-
-      if (error) {
-        console.error('Erro ao buscar histórico geral:', error);
-        return;
-      }
-
-      setChatHistory(data || []);
-      
-      const conversations: ChatConversation[] = [];
-      (data || []).forEach(item => {
-        conversations.push({
-          message: item.message,
-          response: item.response || '',
-          timestamp: item.created_at,
-          isUser: true
-        });
-        
-        if (item.response) {
-          conversations.push({
-            message: item.response,
-            response: '',
-            timestamp: item.created_at,
-            isUser: false
-          });
-        }
-      });
-
-      setMessages(conversations);
-    } catch (error) {
-      console.error('Erro ao buscar histórico geral:', error);
-    }
-  };
-
-  const sendMessage = async (message: string) => {
-    if (!message.trim()) return;
-
-    try {
-      setLoading(true);
-
-      // Adicionar mensagem do usuário imediatamente
-      const userMessage: ChatConversation = {
-        message: message,
-        response: '',
-        timestamp: new Date().toISOString(),
-        isUser: true
-      };
-      setMessages(prev => [...prev, userMessage]);
-
-      // Preparar histórico para contexto
-      const recentHistory = messages.slice(-10).filter(m => !m.isUser).map(m => ({
-        message: m.message,
-        response: m.response
-      }));
-
-      // Chamar edge function do chatbot
-      const { data, error } = await supabase.functions.invoke('chatbot', {
-        body: {
-          message,
-          fileId,
-          conversationHistory: recentHistory
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.success && data?.response) {
-        // Adicionar resposta do assistente
-        const assistantMessage: ChatConversation = {
-          message: data.response,
-          response: '',
-          timestamp: new Date().toISOString(),
-          isUser: false
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-      } else {
-        throw new Error('Resposta inválida do chatbot');
-      }
-
-    } catch (error: any) {
-      console.error('Erro ao enviar mensagem:', error);
-      toast.error(`Erro no chatbot: ${error.message}`);
-      
-      // Adicionar mensagem de erro
-      const errorMessage: ChatConversation = {
-        message: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
-        response: '',
-        timestamp: new Date().toISOString(),
-        isUser: false
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      console.error('Error fetching chat history:', error);
+      toast.error('Error al cargar historial de chat');
     } finally {
       setLoading(false);
     }
   };
 
-  const clearChat = () => {
-    setMessages([]);
+  const sendMessage = async (message: string, fileId?: string) => {
+    try {
+      setSending(true);
+
+      // Guardar mensaje del usuario
+      const { data: userMessage, error: userError } = await supabase
+        .from('chat_history')
+        .insert({
+          message,
+          file_id: fileId,
+          is_user_message: true
+        })
+        .select()
+        .single();
+
+      if (userError) {
+        console.error('Error saving user message:', userError);
+        toast.error('Error al enviar mensaje');
+        return { success: false };
+      }
+
+      // Actualizar mensajes localmente
+      setMessages(prev => [...prev, userMessage]);
+
+      // Llamar al chatbot
+      const { data: botResponse, error: botError } = await supabase.functions.invoke('chatbot', {
+        body: {
+          message,
+          fileId,
+          userId: userMessage.user_id
+        }
+      });
+
+      if (botError) {
+        console.error('Error calling chatbot:', botError);
+        toast.error('Error al obtener respuesta del chatbot');
+        return { success: false };
+      }
+
+      // Guardar respuesta del bot
+      const { data: botMessage, error: botSaveError } = await supabase
+        .from('chat_history')
+        .insert({
+          message: botResponse.response || 'Lo siento, no pude generar una respuesta.',
+          file_id: fileId,
+          is_user_message: false,
+          response: botResponse.response
+        })
+        .select()
+        .single();
+
+      if (botSaveError) {
+        console.error('Error saving bot response:', botSaveError);
+        toast.error('Error al guardar respuesta del chatbot');
+        return { success: false };
+      }
+
+      // Actualizar mensajes localmente
+      setMessages(prev => [...prev, botMessage]);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Error al enviar mensaje');
+      return { success: false };
+    } finally {
+      setSending(false);
+    }
   };
 
-  const getChatSummary = () => {
-    const totalMessages = messages.filter(m => m.isUser).length;
-    const lastMessageTime = messages.length > 0 
-      ? new Date(messages[messages.length - 1].timestamp).toLocaleString('pt-BR')
-      : null;
+  const clearHistory = async (fileId?: string) => {
+    try {
+      let query = supabase.from('chat_history').delete();
 
-    return {
-      totalMessages,
-      lastMessageTime,
-      hasMessages: messages.length > 0
-    };
+      if (fileId) {
+        query = query.eq('file_id', fileId);
+      }
+
+      const { error } = await query;
+
+      if (error) {
+        console.error('Error clearing chat history:', error);
+        toast.error('Error al limpiar historial');
+        return { success: false };
+      }
+
+      setMessages([]);
+      toast.success('Historial limpiado exitosamente');
+      return { success: true };
+    } catch (error) {
+      console.error('Error clearing chat history:', error);
+      toast.error('Error al limpiar historial');
+      return { success: false };
+    }
   };
 
   return {
     messages,
     loading,
-    chatHistory,
+    sending,
     sendMessage,
-    clearChat,
-    getChatSummary,
-    fetchChatHistory
+    fetchChatHistory,
+    clearHistory
   };
 };
