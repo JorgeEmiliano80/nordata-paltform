@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,7 @@ const Dashboard = () => {
   }, []);
 
   const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }: any) => (
-    <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:scale-105">
+    <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
       <div className={`absolute inset-0 bg-gradient-to-r ${color} opacity-5 group-hover:opacity-10 transition-opacity duration-300`} />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
@@ -236,7 +237,7 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border/50">
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                      <div className="w-2 h-2 bg-success rounded-full" />
                       <div>
                         <p className="text-sm font-medium">Archivo procesado</p>
                         <p className="text-xs text-muted-foreground">datos_ventas.csv</p>
@@ -249,7 +250,7 @@ const Dashboard = () => {
                   
                   <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border/50">
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-data-flow rounded-full animate-pulse" />
+                      <div className="w-2 h-2 bg-data-flow rounded-full" />
                       <div>
                         <p className="text-sm font-medium">Procesamiento iniciado</p>
                         <p className="text-xs text-muted-foreground">inventario.xlsx</p>
@@ -262,7 +263,7 @@ const Dashboard = () => {
                   
                   <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border/50">
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                      <div className="w-2 h-2 bg-primary rounded-full" />
                       <div>
                         <p className="text-sm font-medium">Nuevo insight generado</p>
                         <p className="text-xs text-muted-foreground">Análisis de tendencias</p>
