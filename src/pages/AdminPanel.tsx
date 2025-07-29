@@ -24,7 +24,10 @@ import {
   Copy,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Send,
+  Link,
+  AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -558,50 +561,117 @@ const AdminPanel: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Invitation Result Dialog */}
+      {/* Enhanced Invitation Result Dialog */}
       <Dialog open={showInviteResult} onOpenChange={setShowInviteResult}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Invitación Creada</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Invitación Procesada
+            </DialogTitle>
             <DialogDescription>
-              La invitación ha sido creada exitosamente
+              Estado del envío de invitación
             </DialogDescription>
           </DialogHeader>
           {generatedInvite && (
-            <div className="space-y-4">
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Invitación enviada a {generatedInvite.email || inviteForm.email}
-                </AlertDescription>
-              </Alert>
+            <div className="space-y-6">
+              {/* Status Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className={generatedInvite.emailSent ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      {generatedInvite.emailSent ? (
+                        <Send className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="h-5 w-5 text-orange-600" />
+                      )}
+                      <div>
+                        <h3 className="font-medium">
+                          {generatedInvite.emailSent ? 'Email Enviado' : 'Email No Enviado'}
+                        </h3>
+                        <p className={`text-sm ${generatedInvite.emailSent ? 'text-green-600' : 'text-orange-600'}`}>
+                          {generatedInvite.emailSent 
+                            ? `Enviado automáticamente a ${inviteForm.email}`
+                            : 'Usar enlace manual'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Link className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <h3 className="font-medium">Enlace Manual</h3>
+                        <p className="text-sm text-blue-600">
+                          Disponible para compartir
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Error Message if any */}
+              {!generatedInvite.emailSent && generatedInvite.emailError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Motivo del error:</strong> {generatedInvite.emailError}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Instructions */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Instrucciones</h3>
+                
+                {generatedInvite.emailSent && (
+                  <Alert>
+                    <Mail className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>✅ Email automático enviado</strong><br/>
+                      El usuario recibirá un email con instrucciones y enlace de registro.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Alert>
+                  <Copy className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>📋 Opción manual disponible</strong><br/>
+                    También puedes copiar y compartir el enlace directamente con el usuario.
+                  </AlertDescription>
+                </Alert>
+              </div>
               
-              <div className="space-y-2">
-                <Label>URL de Invitación</Label>
+              <div className="space-y-3">
+                <Label>Enlace de Invitación</Label>
                 <div className="flex gap-2">
                   <Input
                     value={generatedInvite.inviteUrl}
                     readOnly
                     className="text-sm"
                   />
-                  <Button onClick={copyInviteUrl} variant="outline">
+                  <Button onClick={copyInviteUrl} variant="outline" size="sm">
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Este enlace expira en 7 días
+                </p>
               </div>
               
-              <div className="space-y-2">
-                <Label>Token de Invitación</Label>
-                <Input
-                  value={generatedInvite.invitationToken}
-                  readOnly
-                  className="text-sm font-mono"
-                />
-              </div>
-              
-              <div className="flex justify-end">
-                <Button onClick={() => setShowInviteResult(false)}>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowInviteResult(false)}>
                   Cerrar
+                </Button>
+                <Button onClick={copyInviteUrl} className="flex items-center gap-2">
+                  <Copy className="h-4 w-4" />
+                  Copiar Enlace
                 </Button>
               </div>
             </div>

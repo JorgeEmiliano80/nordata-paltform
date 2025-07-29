@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -104,20 +103,44 @@ export const useAdmin = () => {
       }
 
       if (data && data.success) {
-        toast.success('Invitación creada exitosamente');
-        toast.info('Comparte el enlace de invitación con el usuario');
+        // Mostrar mensajes diferenciados según el tipo de envío
+        if (data.emailSent) {
+          toast.success('¡Invitación enviada por email exitosamente!', {
+            description: `Se envió un email automático a ${email}`
+          });
+          toast.info('Enlace de respaldo disponible', {
+            description: 'También puedes copiar el enlace para compartir manualmente'
+          });
+        } else {
+          toast.warning('Email no enviado - Usa el enlace manual', {
+            description: data.emailError || 'Problema con el envío automático'
+          });
+          toast.info('Invitación creada exitosamente', {
+            description: 'Comparte el enlace con el usuario'
+          });
+        }
+
         return {
           success: true,
           invitationToken: data.invitationToken,
-          inviteUrl: data.inviteUrl
+          inviteUrl: data.inviteUrl,
+          emailSent: data.emailSent,
+          emailError: data.emailError,
+          instructions: data.instructions
         };
       } else {
         throw new Error(data?.error || 'Error al crear invitación');
       }
     } catch (error: any) {
       console.error('Error creating invitation:', error);
-      toast.error(error.message || 'Error al crear invitación');
-      return { success: false };
+      toast.error('Error al crear invitación', {
+        description: error.message || 'Error desconocido'
+      });
+      return { 
+        success: false, 
+        emailSent: false,
+        error: error.message 
+      };
     } finally {
       setLoading(false);
     }
