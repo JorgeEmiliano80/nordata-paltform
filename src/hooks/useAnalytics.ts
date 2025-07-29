@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,7 +15,6 @@ export interface ClientSegment {
   criteria: any;
   created_at: string;
   updated_at: string;
-  // Datos del perfil del usuario
   user_profile?: {
     full_name: string;
     company_name: string;
@@ -54,7 +52,6 @@ export interface ClientRecommendation {
   created_at: string;
   expires_at: string;
   metadata: any;
-  // Datos del perfil del usuario
   user_profile?: {
     full_name: string;
     company_name: string;
@@ -97,14 +94,35 @@ export const useAnalytics = () => {
   const [dataFlowMetrics, setDataFlowMetrics] = useState<DataFlowMetric[]>([]);
   const [behaviorEvents, setBehaviorEvents] = useState<BehaviorEvent[]>([]);
 
+  // Check if current user is admin
+  const checkIfAdmin = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    return profile?.role === 'admin';
+  };
+
   const fetchClientSegments = async () => {
     try {
       setLoading(true);
+      const isAdmin = await checkIfAdmin();
       
-      // Primero obtener los segmentos
-      const { data: segments, error: segmentsError } = await supabase
-        .from('client_segments')
-        .select('*')
+      let query = supabase.from('client_segments').select('*');
+      
+      if (!isAdmin) {
+        // Si no es admin, solo mostrar su propia segmentación
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        query = query.eq('user_id', user.id);
+      }
+      
+      const { data: segments, error: segmentsError } = await query
         .order('segment_updated_at', { ascending: false });
 
       if (segmentsError) {
@@ -113,7 +131,6 @@ export const useAnalytics = () => {
         return;
       }
 
-      // Luego obtener los perfiles de los usuarios
       if (segments && segments.length > 0) {
         const userIds = segments.map(s => s.user_id);
         const { data: profiles, error: profilesError } = await supabase
@@ -123,10 +140,8 @@ export const useAnalytics = () => {
 
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
-          // Continuar sin los perfiles si hay error
         }
 
-        // Combinar los datos
         const segmentsWithProfiles = segments.map(segment => ({
           ...segment,
           user_profile: profiles?.find(p => p.user_id === segment.user_id)
@@ -147,10 +162,19 @@ export const useAnalytics = () => {
   const fetchFinancialMetrics = async (startDate?: string, endDate?: string) => {
     try {
       setLoading(true);
+      const isAdmin = await checkIfAdmin();
+      
       let query = supabase
         .from('financial_metrics')
         .select('*')
         .order('metric_date', { ascending: false });
+
+      if (!isAdmin) {
+        // Si no es admin, mostrar métricas relacionadas con sus datos
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        query = query.eq('user_id', user.id);
+      }
 
       if (startDate) {
         query = query.gte('metric_date', startDate);
@@ -179,12 +203,20 @@ export const useAnalytics = () => {
   const fetchRecommendations = async () => {
     try {
       setLoading(true);
+      const isAdmin = await checkIfAdmin();
       
-      // Primero obtener las recomendaciones
-      const { data: recommendations, error: recommendationsError } = await supabase
+      let query = supabase
         .from('client_recommendations')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      if (!isAdmin) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data: recommendations, error: recommendationsError } = await query;
 
       if (recommendationsError) {
         console.error('Error fetching recommendations:', recommendationsError);
@@ -192,7 +224,6 @@ export const useAnalytics = () => {
         return;
       }
 
-      // Luego obtener los perfiles de los usuarios
       if (recommendations && recommendations.length > 0) {
         const userIds = recommendations.map(r => r.user_id);
         const { data: profiles, error: profilesError } = await supabase
@@ -202,10 +233,8 @@ export const useAnalytics = () => {
 
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
-          // Continuar sin los perfiles si hay error
         }
 
-        // Combinar los datos y transformar
         const recommendationsWithProfiles = recommendations.map(rec => ({
           ...rec,
           action_items: Array.isArray(rec.action_items) ? 
@@ -261,14 +290,23 @@ export const useAnalytics = () => {
   const fetchBehaviorEvents = async (days: number = 30) => {
     try {
       setLoading(true);
+      const isAdmin = await checkIfAdmin();
       const startTime = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('user_behavior_tracking')
         .select('*')
         .gte('created_at', startTime)
         .order('created_at', { ascending: false })
         .limit(1000);
+      
+      if (!isAdmin) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching behavior events:', error);
@@ -276,7 +314,6 @@ export const useAnalytics = () => {
         return;
       }
 
-      // Transformar los datos para que coincidan con la interfaz
       const transformedData = (data || []).map(item => ({
         ...item,
         ip_address: (item.ip_address || '127.0.0.1') as string,

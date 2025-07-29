@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, Users, TrendingUp, DollarSign, Activity, Bell, RefreshCw, FileText, Database } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, DollarSign, Activity, Bell, RefreshCw, FileText, Database, Info } from 'lucide-react';
 
 import { ClientSegmentsDashboard } from '@/components/analytics/ClientSegmentsDashboard';
 import DataFlowDashboard from '@/components/analytics/DataFlowDashboard';
@@ -16,6 +15,7 @@ import { RecommendationsDashboard } from '@/components/analytics/Recommendations
 import { PerformanceDashboard } from '@/components/analytics/PerformanceDashboard';
 
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useAuth } from '@/hooks/useAuth';
 
 const Analytics: React.FC = () => {
   const {
@@ -35,6 +35,7 @@ const Analytics: React.FC = () => {
     generateDataFlowMetrics
   } = useAnalytics();
 
+  const { profile, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -72,8 +73,16 @@ const Analytics: React.FC = () => {
             Analytics Dashboard
           </h1>
           <p className="text-muted-foreground text-lg">
-            Análisis avanzado de rendimiento y comportamiento
+            {isAdmin() ? 'Panel completo de análisis y rendimiento' : 'Análisis de tu negocio y datos'}
           </p>
+          {!isAdmin() && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Estás viendo tus datos personalizados. Los administradores pueden ver datos de todos los usuarios.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
         
         <div className="flex items-center space-x-2">
@@ -86,36 +95,40 @@ const Analytics: React.FC = () => {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => generateRecommendations()}
-            disabled={loading}
-          >
-            <Bell className="h-4 w-4 mr-2" />
-            Generar Recomendaciones
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => calculateSegmentation()}
-            disabled={loading}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Calcular Segmentación
-          </Button>
+          {isAdmin() && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => generateRecommendations()}
+                disabled={loading}
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Generar Recomendaciones
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => calculateSegmentation()}
+                disabled={loading}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Calcular Segmentación
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-6' : 'grid-cols-5'}`}>
           <TabsTrigger value="overview">
             <BarChart3 className="h-4 w-4 mr-2" />
             Resumen
           </TabsTrigger>
           <TabsTrigger value="clients">
             <Users className="h-4 w-4 mr-2" />
-            Clientes
+            {isAdmin() ? 'Clientes' : 'Mi Perfil'}
           </TabsTrigger>
           <TabsTrigger value="dataflow">
             <TrendingUp className="h-4 w-4 mr-2" />
@@ -129,10 +142,12 @@ const Analytics: React.FC = () => {
             <DollarSign className="h-4 w-4 mr-2" />
             Financiero
           </TabsTrigger>
-          <TabsTrigger value="recommendations">
-            <Bell className="h-4 w-4 mr-2" />
-            Recomendaciones
-          </TabsTrigger>
+          {isAdmin() && (
+            <TabsTrigger value="recommendations">
+              <Bell className="h-4 w-4 mr-2" />
+              Recomendaciones
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -152,13 +167,15 @@ const Analytics: React.FC = () => {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {isAdmin() ? 'Usuarios Activos' : 'Mi Actividad'}
+                </CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalUsers}</div>
+                <div className="text-2xl font-bold">{isAdmin() ? totalUsers : behaviorEvents.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  Usuarios registrados
+                  {isAdmin() ? 'Usuarios registrados' : 'Eventos registrados'}
                 </p>
               </CardContent>
             </Card>
@@ -171,7 +188,7 @@ const Analytics: React.FC = () => {
               <CardContent>
                 <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
-                  Ingresos acumulados
+                  Ingresos {isAdmin() ? 'acumulados' : 'generados'}
                 </p>
               </CardContent>
             </Card>
@@ -249,15 +266,17 @@ const Analytics: React.FC = () => {
           <FinancialDashboard />
         </TabsContent>
 
-        <TabsContent value="recommendations" className="space-y-6">
-          <RecommendationsDashboard 
-            recommendations={recommendations}
-            onRefresh={fetchRecommendations}
-            onGenerate={generateRecommendations}
-            loading={loading}
-          />
-          <PerformanceDashboard loading={loading} />
-        </TabsContent>
+        {isAdmin() && (
+          <TabsContent value="recommendations" className="space-y-6">
+            <RecommendationsDashboard 
+              recommendations={recommendations}
+              onRefresh={fetchRecommendations}
+              onGenerate={generateRecommendations}
+              loading={loading}
+            />
+            <PerformanceDashboard loading={loading} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
