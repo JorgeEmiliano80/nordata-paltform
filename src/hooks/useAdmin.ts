@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -55,6 +54,7 @@ export const useAdmin = () => {
           .eq('role', 'client');
 
         if (usersError) {
+          console.error('Error fetching users:', usersError);
           throw usersError;
         }
 
@@ -100,6 +100,7 @@ export const useAdmin = () => {
           .order('invited_at', { ascending: false });
 
         if (invitationsError) {
+          console.error('Error fetching invitations:', invitationsError);
           throw invitationsError;
         }
 
@@ -113,6 +114,7 @@ export const useAdmin = () => {
           .rpc('get_admin_dashboard');
 
         if (usersError) {
+          console.error('Error from RPC:', usersError);
           throw usersError;
         }
 
@@ -123,6 +125,7 @@ export const useAdmin = () => {
           .order('invited_at', { ascending: false });
 
         if (invitationsError) {
+          console.error('Error fetching invitations:', invitationsError);
           throw invitationsError;
         }
 

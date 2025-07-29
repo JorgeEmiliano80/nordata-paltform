@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Upload, MessageSquare, TrendingUp, Clock, CheckCircle, XCircle, Users, Database, Activity, AlertTriangle } from 'lucide-react';
+import { FileText, Upload, MessageSquare, TrendingUp, Clock, CheckCircle, XCircle, Users, Database, Activity } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFiles } from '@/hooks/useFiles';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -17,24 +17,19 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [adminStats, setAdminStats] = useState({ users: [], invitations: [] });
   const [adminLoading, setAdminLoading] = useState(false);
-  const [adminError, setAdminError] = useState<string | null>(null);
 
   const fileStats = getFileStats();
 
   useEffect(() => {
     if (isAdmin()) {
-      console.log('Usuario admin detectado, cargando datos...');
       setAdminLoading(true);
-      setAdminError(null);
       
       fetchAdminData()
         .then((data) => {
-          console.log('Datos admin cargados:', data);
           setAdminStats(data);
         })
         .catch((error) => {
           console.error('Error cargando datos admin:', error);
-          setAdminError('Error al cargar datos del panel admin');
         })
         .finally(() => {
           setAdminLoading(false);
@@ -69,7 +64,7 @@ const Dashboard = () => {
   };
 
   // Mostrar loading apenas cuando necessário
-  if (filesLoading || (isAdmin() && adminLoading && !adminError)) {
+  if (filesLoading || (isAdmin() && adminLoading)) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -100,24 +95,9 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* Mostrar error de admin si existe */}
-          {adminError && isAdmin() && (
-            <Card className="mb-8 border-red-200 bg-red-50">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-red-700">
-                  <AlertTriangle className="h-5 w-5" />
-                  <p className="font-medium">{adminError}</p>
-                </div>
-                <p className="text-sm text-red-600 mt-2">
-                  Verifique se o usuário está configurado corretamente como administrador.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {isAdmin() && !adminError ? (
+            {isAdmin() ? (
               <>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -147,19 +127,23 @@ const Dashboard = () => {
                     <Database className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{fileStats.total}</div>
+                    <div className="text-2xl font-bold">
+                      {adminStats.users.reduce((acc, user) => acc + user.total_files, 0)}
+                    </div>
                     <p className="text-xs text-muted-foreground">Na plataforma</p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Processamentos</CardTitle>
+                    <CardTitle className="text-sm font-medium">Mensagens Chat</CardTitle>
                     <Activity className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{fileStats.processing}</div>
-                    <p className="text-xs text-muted-foreground">Em andamento</p>
+                    <div className="text-2xl font-bold">
+                      {adminStats.users.reduce((acc, user) => acc + user.total_chat_messages, 0)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Total de mensagens</p>
                   </CardContent>
                 </Card>
               </>
