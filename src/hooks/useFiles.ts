@@ -28,9 +28,17 @@ export const useFiles = () => {
   const fetchFiles = async () => {
     try {
       setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuario no autenticado');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('files')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -52,6 +60,12 @@ export const useFiles = () => {
     try {
       setUploading(true);
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuario no autenticado');
+        return { success: false };
+      }
+
       // Validar tipo de archivo
       const allowedTypes = ['text/csv', 'application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
       if (!allowedTypes.includes(file.type)) {
@@ -80,6 +94,7 @@ export const useFiles = () => {
       const { data: fileRecord, error: dbError } = await supabase
         .from('files')
         .insert({
+          user_id: user.id,
           file_name: file.name,
           file_type: file.type,
           file_size: file.size,

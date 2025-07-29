@@ -23,9 +23,16 @@ export const useNotifications = () => {
     try {
       setLoading(true);
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuario no autenticado');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -33,8 +40,16 @@ export const useNotifications = () => {
         return;
       }
 
-      setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+      // Mapear los datos para asegurar que el tipo sea correcto
+      const mappedNotifications: Notification[] = (data || []).map(notification => ({
+        ...notification,
+        type: ['info', 'success', 'error', 'warning'].includes(notification.type) 
+          ? notification.type as 'info' | 'success' | 'error' | 'warning'
+          : 'info'
+      }));
+
+      setNotifications(mappedNotifications);
+      setUnreadCount(mappedNotifications.filter(n => !n.is_read).length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -74,9 +89,16 @@ export const useNotifications = () => {
 
   const markAllAsRead = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuario no autenticado');
+        return { success: false };
+      }
+
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
+        .eq('user_id', user.id)
         .eq('is_read', false);
 
       if (error) {
@@ -136,7 +158,14 @@ export const useNotifications = () => {
         },
         (payload) => {
           console.log('New notification:', payload);
-          setNotifications(prev => [payload.new as Notification, ...prev]);
+          const newNotification = {
+            ...payload.new,
+            type: ['info', 'success', 'error', 'warning'].includes(payload.new.type) 
+              ? payload.new.type as 'info' | 'success' | 'error' | 'warning'
+              : 'info'
+          } as Notification;
+          
+          setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
         }
       )

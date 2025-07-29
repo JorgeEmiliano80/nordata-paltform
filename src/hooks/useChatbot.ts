@@ -22,9 +22,16 @@ export const useChatbot = () => {
     try {
       setLoading(true);
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuario no autenticado');
+        return;
+      }
+
       let query = supabase
         .from('chat_history')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (fileId) {
@@ -52,10 +59,17 @@ export const useChatbot = () => {
     try {
       setSending(true);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuario no autenticado');
+        return { success: false };
+      }
+
       // Guardar mensaje del usuario
       const { data: userMessage, error: userError } = await supabase
         .from('chat_history')
         .insert({
+          user_id: user.id,
           message,
           file_id: fileId,
           is_user_message: true
@@ -77,7 +91,7 @@ export const useChatbot = () => {
         body: {
           message,
           fileId,
-          userId: userMessage.user_id
+          userId: user.id
         }
       });
 
@@ -91,6 +105,7 @@ export const useChatbot = () => {
       const { data: botMessage, error: botSaveError } = await supabase
         .from('chat_history')
         .insert({
+          user_id: user.id,
           message: botResponse.response || 'Lo siento, no pude generar una respuesta.',
           file_id: fileId,
           is_user_message: false,
@@ -120,7 +135,16 @@ export const useChatbot = () => {
 
   const clearHistory = async (fileId?: string) => {
     try {
-      let query = supabase.from('chat_history').delete();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuario no autenticado');
+        return { success: false };
+      }
+
+      let query = supabase
+        .from('chat_history')
+        .delete()
+        .eq('user_id', user.id);
 
       if (fileId) {
         query = query.eq('file_id', fileId);
