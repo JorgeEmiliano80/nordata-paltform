@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Shield, Database, Brain, Users, FileText, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import MasterSetup from '@/components/MasterSetup';
 import ClientsSection from '@/components/ClientsSection';
 import BrainAnimation from '@/components/BrainAnimation';
-
 const Index = () => {
   const [showSetup, setShowSetup] = useState(false);
   const features = [{
@@ -26,7 +24,6 @@ const Index = () => {
     title: "Analytics Avanzados",
     description: "Visualización de datos y análisis detallado de todos los archivos procesados"
   }];
-
   if (showSetup) {
     return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -39,29 +36,10 @@ const Index = () => {
         </div>
       </div>;
   }
-
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <img 
-                src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
-                alt="NordataPlatform" 
-                className="w-8 h-8 object-contain"
-              />
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                NordataPlatform
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button asChild>
-                <a href="/login">Iniciar Sesión</a>
-              </Button>
-            </div>
-          </div>
-        </div>
+        
       </header>
 
       {/* Hero Section */}
@@ -130,5 +108,4 @@ const Index = () => {
       </footer>
     </div>;
 };
-
 export default Index;
