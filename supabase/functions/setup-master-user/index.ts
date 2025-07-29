@@ -39,7 +39,7 @@ serve(async (req) => {
       user_metadata: {
         full_name: 'Jorge Enrique Arrieta',
         company_name: 'NORDATA.AI',
-        industry: 'technology'
+        industry: 'tecnologia'
       }
     });
 
@@ -75,14 +75,14 @@ serve(async (req) => {
       console.log('Usuario creado con ID:', userId);
     }
 
-    // Crear o actualizar perfil
+    // Crear o actualizar perfil - usando 'tecnologia' en lugar de 'technology'
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .upsert({
         user_id: userId,
         full_name: 'Jorge Enrique Arrieta',
         company_name: 'NORDATA.AI',
-        industry: 'technology',
+        industry: 'tecnologia',
         role: 'admin',
         accepted_terms: true,
         is_active: true,
