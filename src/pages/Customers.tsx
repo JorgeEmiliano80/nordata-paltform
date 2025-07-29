@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Users, Filter, Search, Mail, Phone, MapPin, Calendar, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import CustomerActions from "@/components/CustomerActions";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const CustomersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,6 +129,12 @@ const CustomersPage = () => {
       case "down": return <TrendingDown className="w-4 h-4 text-error" />;
       default: return <div className="w-4 h-4" />; // stable
     }
+  };
+
+  const handleQuickAction = (action: string, description: string) => {
+    toast.success(`Acción ejecutada: ${action}`, {
+      description
+    });
   };
 
   return (
@@ -287,18 +295,8 @@ const CustomersPage = () => {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex justify-end space-x-2">
-                      <Button variant="outline" size="sm">
-                        Ver Detalhes
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Enviar Email
-                      </Button>
-                      {customer.status === "Em Risco" && (
-                        <Button variant="hero" size="sm">
-                          Reativar
-                        </Button>
-                      )}
+                    <div className="mt-4">
+                      <CustomerActions customer={customer} />
                     </div>
                   </div>
                 ))}
@@ -351,15 +349,27 @@ const CustomersPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <Button variant="hero" className="w-full justify-start">
+                  <Button 
+                    variant="default" 
+                    className="w-full justify-start"
+                    onClick={() => handleQuickAction("Campanha VIP", "Iniciando campanha para 45 clientes VIP")}
+                  >
                     <Mail className="w-4 h-4 mr-2" />
                     Campanha para Clientes VIP (45 clientes)
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => handleQuickAction("Programa Fidelidade", "Configurando programa para 178 clientes Premium")}
+                  >
                     <TrendingUp className="w-4 h-4 mr-2" />
                     Programa de Fidelidade Premium (178 clientes)
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => handleQuickAction("Reativação", "Iniciando campanha de reativação para 89 clientes")}
+                  >
                     <TrendingDown className="w-4 h-4 mr-2" />
                     Reativação de Inativos (89 clientes)
                   </Button>

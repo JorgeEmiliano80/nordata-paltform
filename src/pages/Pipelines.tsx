@@ -1,10 +1,15 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Pause, MoreVertical, Plus, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
+import PipelineCreator from "@/components/PipelineCreator";
 
 const PipelinesPage = () => {
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
   const pipelines = [
     {
       id: 1,
@@ -77,7 +82,7 @@ const PipelinesPage = () => {
                 Manage and monitor your data processing workflows
               </p>
             </div>
-            <Button variant="hero" className="flex items-center space-x-2">
+            <Button variant="hero" className="flex items-center space-x-2" onClick={() => setCreateDialogOpen(true)}>
               <Plus className="w-4 h-4" />
               <span>Create Pipeline</span>
             </Button>
@@ -197,6 +202,12 @@ const PipelinesPage = () => {
           </Card>
         </div>
       </div>
+
+      <PipelineCreator 
+        open={createDialogOpen} 
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={() => console.log('Pipeline created successfully')}
+      />
     </div>
   );
 };

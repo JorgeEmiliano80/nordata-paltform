@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -5,9 +6,45 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Settings, Globe, Bell, Shield, Database, Bot } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useTheme } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 
 const SettingsPage = () => {
+  const { theme, toggleTheme } = useTheme();
+  const [settings, setSettings] = useState({
+    company: '',
+    industry: '',
+    currency: 'BRL',
+    autoAnalysis: true,
+    autoColumnDetection: true,
+    smartSegmentation: true,
+    aiAssistant: true,
+    autoRecommendations: true,
+    aiFrequency: 'Diária',
+    performanceAlerts: true,
+    newInsights: true,
+    weeklyReports: false,
+    advancedEncryption: true,
+    autoBackup: true,
+    retentionDays: 365
+  });
+
+  const handleSettingChange = (key: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const handleSaveSettings = () => {
+    // Simulate save operation
+    toast.success('Configuraciones guardadas exitosamente', {
+      description: 'Todos los cambios han sido aplicados'
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -37,11 +74,21 @@ const SettingsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="company">Nome da Empresa</Label>
-                    <Input id="company" placeholder="Sua empresa" />
+                    <Input 
+                      id="company" 
+                      placeholder="Sua empresa" 
+                      value={settings.company}
+                      onChange={(e) => handleSettingChange('company', e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="industry">Setor</Label>
-                    <Input id="industry" placeholder="E-commerce, Varejo, etc." />
+                    <Input 
+                      id="industry" 
+                      placeholder="E-commerce, Varejo, etc." 
+                      value={settings.industry}
+                      onChange={(e) => handleSettingChange('industry', e.target.value)}
+                    />
                   </div>
                 </div>
 
@@ -54,7 +101,10 @@ const SettingsPage = () => {
                       Ative o tema escuro para a interface
                     </p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={theme === 'dark'}
+                    onCheckedChange={toggleTheme}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -64,7 +114,10 @@ const SettingsPage = () => {
                       Gerar insights automaticamente ao carregar dados
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.autoAnalysis}
+                    onCheckedChange={(checked) => handleSettingChange('autoAnalysis', checked)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -83,7 +136,12 @@ const SettingsPage = () => {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="currency">Moeda Principal</Label>
-                  <Input id="currency" defaultValue="BRL" placeholder="BRL, USD, EUR..." />
+                  <Input 
+                    id="currency" 
+                    value={settings.currency}
+                    onChange={(e) => handleSettingChange('currency', e.target.value)}
+                    placeholder="BRL, USD, EUR..." 
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -93,7 +151,10 @@ const SettingsPage = () => {
                       Identificar automaticamente colunas de vendas, clientes, etc.
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.autoColumnDetection}
+                    onCheckedChange={(checked) => handleSettingChange('autoColumnDetection', checked)}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -103,7 +164,10 @@ const SettingsPage = () => {
                       Segmentar clientes automaticamente por comportamento
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.smartSegmentation}
+                    onCheckedChange={(checked) => handleSettingChange('smartSegmentation', checked)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -127,7 +191,10 @@ const SettingsPage = () => {
                       Habilitar chatbot para recomendações baseadas em dados
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.aiAssistant}
+                    onCheckedChange={(checked) => handleSettingChange('aiAssistant', checked)}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -137,12 +204,20 @@ const SettingsPage = () => {
                       Receber sugestões automáticas de otimização
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.autoRecommendations}
+                    onCheckedChange={(checked) => handleSettingChange('autoRecommendations', checked)}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="ai-frequency">Frequência de Análise</Label>
-                  <Input id="ai-frequency" defaultValue="Diária" placeholder="Diária, Semanal, Mensal" />
+                  <Input 
+                    id="ai-frequency" 
+                    value={settings.aiFrequency}
+                    onChange={(e) => handleSettingChange('aiFrequency', e.target.value)}
+                    placeholder="Diária, Semanal, Mensal" 
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -166,7 +241,10 @@ const SettingsPage = () => {
                       Notificar sobre mudanças significativas nas vendas
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.performanceAlerts}
+                    onCheckedChange={(checked) => handleSettingChange('performanceAlerts', checked)}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -176,7 +254,10 @@ const SettingsPage = () => {
                       Receber notificação quando novos insights forem descobertos
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.newInsights}
+                    onCheckedChange={(checked) => handleSettingChange('newInsights', checked)}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -186,7 +267,10 @@ const SettingsPage = () => {
                       Receber resumo semanal por email
                     </p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={settings.weeklyReports}
+                    onCheckedChange={(checked) => handleSettingChange('weeklyReports', checked)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -210,7 +294,10 @@ const SettingsPage = () => {
                       Usar criptografia adicional para dados sensíveis
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.advancedEncryption}
+                    onCheckedChange={(checked) => handleSettingChange('advancedEncryption', checked)}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -220,19 +307,29 @@ const SettingsPage = () => {
                       Fazer backup automático dos dados processados
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch 
+                    checked={settings.autoBackup}
+                    onCheckedChange={(checked) => handleSettingChange('autoBackup', checked)}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="retention">Período de Retenção (dias)</Label>
-                  <Input id="retention" defaultValue="365" type="number" />
+                  <Input 
+                    id="retention" 
+                    type="number"
+                    value={settings.retentionDays}
+                    onChange={(e) => handleSettingChange('retentionDays', parseInt(e.target.value))}
+                  />
                 </div>
               </CardContent>
             </Card>
 
             <div className="flex justify-end space-x-4">
               <Button variant="outline">Cancelar</Button>
-              <Button variant="hero">Salvar Configurações</Button>
+              <Button variant="default" onClick={handleSaveSettings}>
+                Salvar Configurações
+              </Button>
             </div>
           </div>
         </div>

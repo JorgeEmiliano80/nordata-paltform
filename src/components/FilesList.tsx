@@ -1,116 +1,47 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileText, 
-  Play, 
-  Trash2, 
-  Eye, 
-  Download, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle,
-  Loader2,
-  Calendar
-} from 'lucide-react';
-import { useFiles } from '@/hooks/useFiles';
+import { Button } from '@/components/ui/button';
+import { FileText, Download, Trash2, Eye, Clock, CheckCircle, AlertCircle, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useFiles } from '@/hooks/useFiles';
 
 const FilesList: React.FC = () => {
-  const { files, loading, processFile, deleteFile, getFileInsights } = useFiles();
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [insights, setInsights] = useState<any[]>([]);
-  const [loadingInsights, setLoadingInsights] = useState(false);
-  const [processingFiles, setProcessingFiles] = useState<Set<string>>(new Set());
-  const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
+  const { files, loading, fetchFiles } = useFiles();
 
-  const handleProcessFile = async (fileId: string) => {
-    setProcessingFiles(prev => new Set(prev).add(fileId));
-    
-    try {
-      const result = await processFile(fileId);
-      if (result.success) {
-        // El archivo se actualizará automáticamente via refetch
-      }
-    } finally {
-      setProcessingFiles(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(fileId);
-        return newSet;
-      });
-    }
-  };
+  useEffect(() => {
+    fetchFiles();
+  }, []);
 
-  const handleDeleteFile = async (fileId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este archivo? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
-    setDeletingFiles(prev => new Set(prev).add(fileId));
-    
-    try {
-      const result = await deleteFile(fileId);
-      if (result.success) {
-        // El archivo se eliminará automáticamente via refetch
-      }
-    } finally {
-      setDeletingFiles(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(fileId);
-        return newSet;
-      });
-    }
-  };
-
-  const handleViewInsights = async (fileId: string) => {
-    setSelectedFile(fileId);
-    setLoadingInsights(true);
-    
-    try {
-      const fileInsights = await getFileInsights(fileId);
-      setInsights(fileInsights);
-    } finally {
-      setLoadingInsights(false);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'uploaded':
-        return (
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-            <Clock className="h-3 w-3 mr-1" />
-            Subido
-          </Badge>
-        );
-      case 'processing':
-        return (
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            Procesando
-          </Badge>
-        );
-      case 'done':
-        return (
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Completado
-          </Badge>
-        );
-      case 'error':
-        return (
-          <Badge variant="destructive">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            Error
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+      case 'uploaded': return <Upload className="h-4 w-4 text-primary" />;
+      case 'processing': return <Clock className="h-4 w-4 text-warning animate-spin" />;
+      case 'done': return <CheckCircle className="h-4 w-4 text-success" />;
+      case 'error': return <AlertCircle className="h-4 w-4 text-error" />;
+      default: return <FileText className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'uploaded': return 'bg-primary/10 text-primary';
+      case 'processing': return 'bg-warning/10 text-warning';
+      case 'done': return 'bg-success/10 text-success';
+      case 'error': return 'bg-error/10 text-error';
+      default: return 'bg-muted/10 text-muted-foreground';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'uploaded': return 'Subido';
+      case 'processing': return 'Procesando';
+      case 'done': return 'Completado';
+      case 'error': return 'Error';
+      default: return 'Desconocido';
     }
   };
 
@@ -124,171 +55,91 @@ const FilesList: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (files.length === 0) {
-    return (
       <Card>
-        <CardContent className="text-center py-8">
-          <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">
-            No hay archivos subidos. Sube tu primer archivo para comenzar.
-          </p>
+        <CardHeader>
+          <CardTitle>Mis Archivos</CardTitle>
+          <CardDescription>Archivos subidos y procesados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Mis Archivos</h2>
-        <Badge variant="outline" className="text-sm">
-          {files.length} archivo{files.length !== 1 ? 's' : ''}
-        </Badge>
-      </div>
-
-      <div className="grid gap-4">
-        {files.map((file) => (
-          <Card key={file.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-primary" />
+    <Card>
+      <CardHeader>
+        <CardTitle>Mis Archivos</CardTitle>
+        <CardDescription>
+          Archivos subidos y procesados ({files.length})
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {files.length === 0 ? (
+          <div className="text-center py-8">
+            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No hay archivos</h3>
+            <p className="text-muted-foreground">
+              Sube tu primer archivo para comenzar el análisis
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {files.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/5 transition-colors"
+              >
+                <div className="flex items-center space-x-4">
+                  {getStatusIcon(file.status)}
                   <div>
-                    <CardTitle className="text-lg">{file.file_name}</CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                    <h3 className="font-medium">{file.file_name}</h3>
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <span>{formatFileSize(file.file_size)}</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                      <span>{file.file_type}</span>
+                      <span>
                         {format(new Date(file.uploaded_at), 'PPp', { locale: es })}
                       </span>
                     </div>
+                    {file.error_message && (
+                      <p className="text-sm text-error mt-1">
+                        Error: {file.error_message}
+                      </p>
+                    )}
                   </div>
                 </div>
-                {getStatusBadge(file.status)}
-              </div>
-            </CardHeader>
 
-            <CardContent>
-              {file.status === 'error' && file.error_message && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{file.error_message}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Botón de procesar */}
-                {file.status === 'uploaded' && (
-                  <Button
-                    onClick={() => handleProcessFile(file.id)}
-                    disabled={processingFiles.has(file.id)}
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    {processingFiles.has(file.id) ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Play className="h-4 w-4" />
-                    )}
-                    Procesar
-                  </Button>
-                )}
-
-                {/* Botón de ver resultados */}
-                {file.status === 'done' && (
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewInsights(file.id)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver Resultados
+                <div className="flex items-center space-x-4">
+                  <Badge className={getStatusColor(file.status)}>
+                    {getStatusText(file.status)}
+                  </Badge>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" size="sm">
+                      <Eye className="h-4 w-4 mr-1" />
+                      Ver
+                    </Button>
+                    {file.status === 'done' && (
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-1" />
+                        Descargar
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Resultados de {file.file_name}</DialogTitle>
-                        <DialogDescription>
-                          Insights generados del procesamiento de datos
-                        </DialogDescription>
-                      </DialogHeader>
-                      
-                      {loadingInsights ? (
-                        <div className="flex justify-center items-center py-8">
-                          <Loader2 className="h-8 w-8 animate-spin" />
-                        </div>
-                      ) : insights.length > 0 ? (
-                        <div className="space-y-4">
-                          {insights.map((insight) => (
-                            <Card key={insight.id} className="p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-semibold">{insight.title}</h4>
-                                <Badge variant="outline">{insight.insight_type}</Badge>
-                              </div>
-                              {insight.description && (
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  {insight.description}
-                                </p>
-                              )}
-                              {insight.confidence_score && (
-                                <p className="text-xs text-muted-foreground">
-                                  Confianza: {(insight.confidence_score * 100).toFixed(1)}%
-                                </p>
-                              )}
-                              {insight.data && Object.keys(insight.data).length > 0 && (
-                                <pre className="text-xs bg-muted p-2 rounded mt-2 overflow-x-auto">
-                                  {JSON.stringify(insight.data, null, 2)}
-                                </pre>
-                              )}
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No se encontraron insights para este archivo
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                )}
-
-                {/* Botón de descargar */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(file.storage_url, '_blank')}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Descargar
-                </Button>
-
-                {/* Botón de eliminar */}
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDeleteFile(file.id)}
-                  disabled={deletingFiles.has(file.id)}
-                >
-                  {deletingFiles.has(file.id) ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
+                    )}
+                    <Button variant="outline" size="sm">
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
