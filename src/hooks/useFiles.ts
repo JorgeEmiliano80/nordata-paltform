@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -46,7 +47,17 @@ export const useFiles = (userId?: string) => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Verificar si es admin para mostrar todos los archivos
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      let query = supabase
         .from('files')
         .select(`
           *,
@@ -54,16 +65,23 @@ export const useFiles = (userId?: string) => {
         `)
         .order('uploaded_at', { ascending: false });
 
+      // Si no es admin, solo mostrar archivos del usuario
+      if (profile?.role !== 'admin') {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data, error } = await query;
+
       if (error) {
-        console.error('Erro ao buscar arquivos:', error);
-        toast.error('Erro ao carregar arquivos');
+        console.error('Error fetching files:', error);
+        toast.error('Error al cargar archivos');
         return;
       }
 
       setFiles(data || []);
     } catch (error) {
-      console.error('Erro ao buscar arquivos:', error);
-      toast.error('Erro ao carregar arquivos');
+      console.error('Error fetching files:', error);
+      toast.error('Error al cargar archivos');
     } finally {
       setLoading(false);
     }
@@ -74,38 +92,55 @@ export const useFiles = (userId?: string) => {
       setUploading(true);
       
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      if (!user) throw new Error('Usuario no autenticado');
 
-      // 1. Upload do arquivo para o storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Validar tipo de archivo
+      const allowedTypes = ['csv', 'xlsx', 'xls', 'json'];
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      
+      if (!fileExt || !allowedTypes.includes(fileExt)) {
+        throw new Error('Tipo de archivo no permitido. Solo se permiten: CSV, Excel, JSON');
+      }
+
+      // Validar tamaño (máximo 50MB)
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxSize) {
+        throw new Error('El archivo es demasiado grande. Tamaño máximo: 50MB');
+      }
+
+      // 1. Upload del archivo para el storage
+      const fileName = `${user.id}/${Date.now()}_${file.name}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('data-files')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
         throw uploadError;
       }
 
-      // 2. Obter URL do arquivo
+      // 2. Obtener URL del archivo
       const { data: urlData } = supabase.storage
         .from('data-files')
         .getPublicUrl(fileName);
 
-      // 3. Salvar metadados no banco
+      // 3. Guardar metadatos en la base de datos
       const { data: fileRecord, error: dbError } = await supabase
         .from('files')
         .insert({
           user_id: user.id,
           file_name: file.name,
-          file_type: fileExt || 'unknown',
+          file_type: fileExt,
           file_size: file.size,
           storage_url: urlData.publicUrl,
           status: 'uploaded',
           metadata: {
             original_name: file.name,
-            upload_timestamp: new Date().toISOString()
+            upload_timestamp: new Date().toISOString(),
+            file_extension: fileExt
           }
         })
         .select()
@@ -115,7 +150,7 @@ export const useFiles = (userId?: string) => {
         throw dbError;
       }
 
-      // 4. Triggerar processamento no Databricks
+      // 4. Triggerar procesamiento automático
       const { data: processData, error: processError } = await supabase.functions
         .invoke('process-file', {
           body: {
@@ -128,20 +163,21 @@ export const useFiles = (userId?: string) => {
         });
 
       if (processError) {
-        console.error('Erro ao iniciar processamento:', processError);
-        toast.error('Arquivo enviado, mas erro ao iniciar processamento');
+        console.error('Error al iniciar procesamiento:', processError);
+        // No lanzar error, el archivo se subió correctamente
+        toast.warning('Archivo subido, pero hubo un error al iniciar el procesamiento automático');
       } else {
-        toast.success('Arquivo enviado e processamento iniciado!');
+        toast.success('Archivo subido y enviado a procesamiento');
       }
 
-      // Atualizar lista de arquivos
+      // Actualizar lista de archivos
       await fetchFiles();
       
       return { success: true, fileId: fileRecord.id };
       
     } catch (error: any) {
-      console.error('Erro no upload:', error);
-      toast.error(`Erro no upload: ${error.message}`);
+      console.error('Error en upload:', error);
+      toast.error(`Error en upload: ${error.message}`);
       return { success: false, error: error.message };
     } finally {
       setUploading(false);
@@ -150,21 +186,137 @@ export const useFiles = (userId?: string) => {
 
   const deleteFile = async (fileId: string) => {
     try {
-      const { error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      // Verificar permisos
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      // Obtener información del archivo
+      const { data: fileData } = await supabase
         .from('files')
-        .delete()
-        .eq('id', fileId);
+        .select('*')
+        .eq('id', fileId)
+        .single();
+
+      if (!fileData) {
+        throw new Error('Archivo no encontrado');
+      }
+
+      // Solo el propietario o admin puede eliminar
+      if (fileData.user_id !== user.id && profile?.role !== 'admin') {
+        throw new Error('No tienes permisos para eliminar este archivo');
+      }
+
+      // Eliminar archivo del storage
+      if (fileData.storage_url) {
+        const fileName = fileData.storage_url.split('/').pop();
+        if (fileName) {
+          await supabase.storage
+            .from('data-files')
+            .remove([fileName]);
+        }
+      }
+
+      // Usar función para limpiar todos los datos relacionados
+      const { error } = await supabase.rpc('cleanup_file_data', {
+        file_uuid: fileId
+      });
 
       if (error) {
         throw error;
       }
 
-      toast.success('Arquivo excluído com sucesso');
+      toast.success('Archivo eliminado exitosamente');
       await fetchFiles();
       
     } catch (error: any) {
-      console.error('Erro ao excluir arquivo:', error);
-      toast.error(`Erro ao excluir arquivo: ${error.message}`);
+      console.error('Error al eliminar archivo:', error);
+      toast.error(`Error al eliminar archivo: ${error.message}`);
+    }
+  };
+
+  const reprocessFile = async (fileId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      // Obtener información del archivo
+      const { data: fileData } = await supabase
+        .from('files')
+        .select('*')
+        .eq('id', fileId)
+        .single();
+
+      if (!fileData) {
+        throw new Error('Archivo no encontrado');
+      }
+
+      // Actualizar status a processing
+      await supabase
+        .from('files')
+        .update({ 
+          status: 'processing',
+          error_message: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', fileId);
+
+      // Enviar para reprocesamiento
+      const { data: processData, error: processError } = await supabase.functions
+        .invoke('process-file', {
+          body: {
+            fileId: fileId,
+            userId: fileData.user_id,
+            fileUrl: fileData.storage_url,
+            fileName: fileData.file_name,
+            fileType: fileData.file_type
+          }
+        });
+
+      if (processError) {
+        throw processError;
+      }
+
+      toast.success('Archivo enviado para reprocesamiento');
+      await fetchFiles();
+      
+    } catch (error: any) {
+      console.error('Error al reprocesar archivo:', error);
+      toast.error(`Error al reprocesar archivo: ${error.message}`);
+    }
+  };
+
+  const downloadFile = async (fileId: string) => {
+    try {
+      const { data: fileData } = await supabase
+        .from('files')
+        .select('*')
+        .eq('id', fileId)
+        .single();
+
+      if (!fileData) {
+        throw new Error('Archivo no encontrado');
+      }
+
+      // Crear URL de descarga
+      const link = document.createElement('a');
+      link.href = fileData.storage_url;
+      link.download = fileData.file_name;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success('Descarga iniciada');
+      
+    } catch (error: any) {
+      console.error('Error al descargar archivo:', error);
+      toast.error(`Error al descargar archivo: ${error.message}`);
     }
   };
 
@@ -183,6 +335,18 @@ export const useFiles = (userId?: string) => {
     return file.insights;
   };
 
+  const getFileStats = () => {
+    const stats = {
+      total: files.length,
+      uploaded: files.filter(f => f.status === 'uploaded').length,
+      processing: files.filter(f => f.status === 'processing').length,
+      done: files.filter(f => f.status === 'done').length,
+      error: files.filter(f => f.status === 'error').length,
+      totalInsights: files.reduce((acc, file) => acc + (file.insights?.length || 0), 0)
+    };
+    return stats;
+  };
+
   return {
     files,
     loading,
@@ -190,7 +354,10 @@ export const useFiles = (userId?: string) => {
     fetchFiles,
     uploadFile,
     deleteFile,
+    reprocessFile,
+    downloadFile,
     getFilesByStatus,
-    getInsightsByType
+    getInsightsByType,
+    getFileStats
   };
 };

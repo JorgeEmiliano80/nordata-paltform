@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +8,7 @@ interface AdminRouteProps {
 }
 
 const AdminRoute = ({ children }: AdminRouteProps) => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, isAdmin } = useAuth();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -15,20 +16,23 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
       if (!user) {
         setAuthorized(false);
       } else if (!profile) {
-        // Esperar o perfil carregar
+        // Aguardar o perfil carregar
         setAuthorized(null);
-      } else if (profile.role === 'admin') {
+      } else if (isAdmin() && profile.is_active) {
         setAuthorized(true);
       } else {
         setAuthorized(false);
       }
     }
-  }, [user, profile, loading]);
+  }, [user, profile, loading, isAdmin]);
 
   if (loading || authorized === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verificando permissões...</p>
+        </div>
       </div>
     );
   }

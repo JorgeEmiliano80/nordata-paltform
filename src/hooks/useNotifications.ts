@@ -1,56 +1,57 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
-export interface NotificationData {
+export interface Notification {
   id: string;
   user_id: string;
   title: string;
   message: string;
-  type: string;
+  type: 'info' | 'success' | 'error' | 'warning';
   is_read: boolean;
-  related_file_id: string | null;
+  related_file_id?: string;
   created_at: string;
 }
 
-export const useNotifications = (userId?: string) => {
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+export const useNotifications = () => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (userId) {
+    if (user) {
       fetchNotifications();
-      setupRealtimeSubscription();
+      subscribeToNotifications();
     }
-  }, [userId]);
+  }, [user]);
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(20);
 
       if (error) {
-        console.error('Erro ao buscar notificações:', error);
+        console.error('Error fetching notifications:', error);
         return;
       }
 
       setNotifications(data || []);
       setUnreadCount(data?.filter(n => !n.is_read).length || 0);
     } catch (error) {
-      console.error('Erro ao buscar notificações:', error);
+      console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const setupRealtimeSubscription = () => {
-    if (!userId) return;
-
+  const subscribeToNotifications = () => {
     const channel = supabase
       .channel('notifications')
       .on(
@@ -59,33 +60,11 @@ export const useNotifications = (userId?: string) => {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${user?.id}`
         },
         (payload) => {
-          const newNotification = payload.new as NotificationData;
-          setNotifications(prev => [newNotification, ...prev]);
+          setNotifications(prev => [payload.new as Notification, ...prev]);
           setUnreadCount(prev => prev + 1);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          const updatedNotification = payload.new as NotificationData;
-          setNotifications(prev => 
-            prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
-          );
-          
-          // Recalcular unread count
-          setNotifications(current => {
-            setUnreadCount(current.filter(n => !n.is_read).length);
-            return current;
-          });
         }
       )
       .subscribe();
@@ -103,77 +82,50 @@ export const useNotifications = (userId?: string) => {
         .eq('id', notificationId);
 
       if (error) {
-        console.error('Erro ao marcar notificação como lida:', error);
+        console.error('Error marking notification as read:', error);
         return;
       }
 
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notificationId 
+            ? { ...n, is_read: true }
+            : n
+        )
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Erro ao marcar notificação como lida:', error);
+      console.error('Error marking notification as read:', error);
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      const unreadIds = notifications
-        .filter(n => !n.is_read)
-        .map(n => n.id);
-
-      if (unreadIds.length === 0) return;
-
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
-        .in('id', unreadIds);
+        .eq('user_id', user?.id);
 
       if (error) {
-        console.error('Erro ao marcar todas como lidas:', error);
+        console.error('Error marking all notifications as read:', error);
         return;
       }
 
-      setNotifications(prev =>
+      setNotifications(prev => 
         prev.map(n => ({ ...n, is_read: true }))
       );
       setUnreadCount(0);
     } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
-    }
-  };
-
-  const deleteNotification = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-
-      if (error) {
-        console.error('Erro ao excluir notificação:', error);
-        return;
-      }
-
-      const notification = notifications.find(n => n.id === notificationId);
-      
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      
-      if (notification && !notification.is_read) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-    } catch (error) {
-      console.error('Erro ao excluir notificação:', error);
+      console.error('Error marking all notifications as read:', error);
     }
   };
 
   return {
     notifications,
-    unreadCount,
     loading,
+    unreadCount,
     fetchNotifications,
     markAsRead,
-    markAllAsRead,
-    deleteNotification
+    markAllAsRead
   };
 };

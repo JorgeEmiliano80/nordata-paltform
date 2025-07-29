@@ -1,107 +1,142 @@
-import { Button } from "@/components/ui/button";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Database, BarChart3, Upload, Settings, Bot, Users, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
-import type { User } from '@supabase/supabase-js';
+
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
+import { Menu, LogOut, User, Shield, Upload, MessageSquare, TrendingUp, Settings, Users } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const Navbar = () => {
-  const location = useLocation();
+  const { user, profile, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Verificar usuário atual
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
-
-    // Escutar mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso",
-      });
-      
-      navigate('/login');
-    } catch (error: any) {
-      toast({
-        title: "Erro no logout",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    await signOut();
+    navigate('/login');
   };
 
   const navItems = [
-    { path: "/dashboard", label: "Painel", icon: BarChart3 },
-    { path: "/upload", label: "Upload", icon: Upload },
-    { path: "/analytics", label: "Análises", icon: Database },
-    { path: "/customers", label: "Clientes", icon: Users },
-    { path: "/ai-assistant", label: "IA", icon: Bot },
-    { path: "/settings", label: "Configurações", icon: Settings },
+    { icon: TrendingUp, label: 'Dashboard', path: '/dashboard' },
+    { icon: Upload, label: 'Upload', path: '/upload' },
+    { icon: MessageSquare, label: 'Chat IA', path: '/chatbot' },
+    { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
+    ...(isAdmin() ? [{ icon: Users, label: 'Admin', path: '/admin' }] : []),
+    { icon: Settings, label: 'Configurações', path: '/settings' }
   ];
 
   return (
-    <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-              <Database className="w-5 h-5 text-primary-foreground" />
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <div className="flex items-center">
+            <div className="flex-shrink-0 flex items-center">
+              <Shield className="h-8 w-8 text-primary mr-2" />
+              <span className="text-xl font-bold text-gray-900">NORDATA.AI</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              NordataPlatform
-            </span>
-          </Link>
-
-          <div className="flex items-center space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <Link key={item.path} to={item.path}>
-                  <Button
-                    variant={isActive ? "secondary" : "ghost"}
-                    size="sm"
-                    className="flex items-center space-x-2"
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden md:inline">{item.label}</span>
-                  </Button>
-                </Link>
-              );
-            })}
           </div>
 
-          {user ? (
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex md:items-center md:space-x-4">
+            {navItems.map((item) => (
+              <Button
+                key={item.path}
+                variant="ghost"
+                onClick={() => navigate(item.path)}
+                className="flex items-center gap-2"
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* User Menu */}
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex md:items-center md:space-x-3">
+              <div className="flex items-center space-x-2">
+                <User className="h-5 w-5 text-gray-500" />
+                <div className="text-sm">
+                  <p className="font-medium text-gray-900">
+                    {profile?.full_name || user?.email}
+                  </p>
+                  <p className="text-gray-500">{profile?.company_name}</p>
+                </div>
+              </div>
+              {isAdmin() && (
+                <Badge variant="default" className="bg-blue-500">
+                  Admin
+                </Badge>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="hidden md:flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
               Sair
             </Button>
-          ) : (
-            <Link to="/login">
-              <Button variant="hero" size="sm">
-                Entrar
-              </Button>
-            </Link>
-          )}
+
+            {/* Mobile menu button */}
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px]">
+                <div className="flex flex-col space-y-4">
+                  <div className="flex items-center space-x-2 p-4 border-b">
+                    <User className="h-5 w-5 text-gray-500" />
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900">
+                        {profile?.full_name || user?.email}
+                      </p>
+                      <p className="text-gray-500">{profile?.company_name}</p>
+                    </div>
+                    {isAdmin() && (
+                      <Badge variant="default" className="bg-blue-500">
+                        Admin
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col space-y-2">
+                    {navItems.map((item) => (
+                      <Button
+                        key={item.path}
+                        variant="ghost"
+                        onClick={() => {
+                          navigate(item.path);
+                          setIsOpen(false);
+                        }}
+                        className="justify-start"
+                      >
+                        <item.icon className="h-4 w-4 mr-2" />
+                        {item.label}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <Button
+                      variant="ghost"
+                      onClick={handleSignOut}
+                      className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sair
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </nav>

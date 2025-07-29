@@ -1,109 +1,263 @@
-# Welcome to your Lovable project
 
-## NORDATA.AI - Plataforma de Procesamiento de Datos
+# NORDATA.AI - Plataforma de Análise de Dados
 
-Esta es una plataforma completa de análisis de datos que permite a los usuarios:
+## 🎯 Visão Geral
 
-- **Upload de archivos**: CSV, Excel, JSON para procesamiento
-- **Análisis con IA**: Insights automáticos generados por Databricks
-- **Chat inteligente**: Conversación con IA sobre los datos
-- **Dashboard completo**: Visualización de métricas y análisis
-- **Gestión de usuarios**: Sistema de invitaciones y roles
+NORDATA.AI é uma plataforma completa de análise de dados que permite aos usuários fazer upload de arquivos, processá-los usando inteligência artificial e obter insights automatizados. A plataforma é administrada exclusivamente pela equipe NORDATA, com acesso de clientes apenas por convite.
 
-### Configuración de la Base de Datos
+## ✨ Funcionalidades
 
-La base de datos ha sido configurada con las siguientes tablas principales:
+### 🔐 Sistema de Autenticação
+- **Login por convite**: Acesso restrito a usuários convidados
+- **Usuário Master**: Administrador da plataforma
+- **Controle de roles**: Admin e Cliente com permissões diferenciadas
 
-1. **profiles** - Perfiles de usuario con roles y información de empresa
-2. **files** - Archivos subidos para procesamiento
-3. **insights** - Insights generados por IA/Databricks
-4. **chat_history** - Historial de conversaciones con el chatbot
-5. **processing_logs** - Logs de procesamiento de archivos
-6. **notifications** - Sistema de notificaciones
-7. **pending_invitations** - Gestión de invitaciones pendientes
-8. **datasets, customers, transactions** - Datos procesados y analizados
+### 📁 Gestão de Arquivos
+- **Upload seguro**: Suporte a CSV, Excel (.xlsx, .xls) e JSON
+- **Processamento automático**: Integração com Databricks para análise
+- **Insights em tempo real**: Geração automática de análises
+- **Histórico completo**: Rastreamento de status e logs
 
-### Funcionalidades Implementadas
+### 💬 Chat Inteligente
+- **IA Conversacional**: Chat baseado nos dados processados
+- **Contexto personalizado**: Respostas baseadas nos arquivos do usuário
+- **Histórico de conversas**: Persistência de interações
 
-- ✅ Sistema de autenticación con Supabase
-- ✅ Row Level Security (RLS) en todas las tablas
-- ✅ Sistema de invitaciones por email
-- ✅ Upload y procesamiento de archivos
-- ✅ Integración con Databricks para análisis
-- ✅ Chatbot con IA (OpenAI)
-- ✅ Dashboard de administración
-- ✅ Notificaciones en tiempo real
-- ✅ Análisis de clientes y segmentación
-- ✅ Métricas de negocio y KPIs
+### 👥 Painel Administrativo
+- **Gestão de usuários**: Criar, editar e desativar contas
+- **Sistema de convites**: Criação de tokens de acesso
+- **Monitoramento**: Visualização de atividades e estatísticas
+- **Logs de sistema**: Rastreamento de operações
 
-## Project info
+## 🏗️ Tecnologias Utilizadas
 
-**URL**: https://lovable.dev/projects/dabcbcd3-532f-4a38-9ed3-ee8822d33b3e
+### Frontend
+- **React 18** + **TypeScript**
+- **Tailwind CSS** para estilização
+- **Vite** como build tool
+- **Shadcn/ui** para componentes
 
-## How can I edit this code?
+### Backend
+- **Supabase** (PostgreSQL + Edge Functions)
+- **Supabase Auth** para autenticação
+- **Supabase Storage** para arquivos
+- **Row Level Security** para proteção de dados
 
-There are several ways of editing your application.
+### Integrações
+- **Databricks** para processamento de dados
+- **API Externa** para análise de IA
 
-**Use Lovable**
+## 📊 Estrutura do Projeto
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/dabcbcd3-532f-4a38-9ed3-ee8822d33b3e) and start prompting.
+```
+src/
+├── components/         # Componentes React
+│   ├── ui/            # Componentes base (Shadcn)
+│   ├── FileUpload.tsx # Upload de arquivos
+│   ├── FilesList.tsx  # Lista de arquivos
+│   └── ...
+├── hooks/             # Hooks personalizados
+│   ├── useAuth.ts     # Autenticação
+│   ├── useFiles.ts    # Gestão de arquivos
+│   └── useAdmin.ts    # Funcionalidades admin
+├── pages/             # Páginas da aplicação
+│   ├── Login.tsx      # Página de login
+│   ├── Dashboard.tsx  # Dashboard principal
+│   ├── Upload.tsx     # Upload de arquivos
+│   ├── AdminPanel.tsx # Painel administrativo
+│   └── ...
+├── integrations/      # Integrações externas
+│   └── supabase/      # Cliente Supabase
+└── lib/              # Utilitários
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+supabase/
+├── functions/         # Edge Functions
+│   ├── master-auth/   # Autenticação master
+│   ├── process-file/  # Processamento de arquivos
+│   └── ...
+├── migrations/        # Migrações do banco
+└── config.toml       # Configuração
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Instalação e Configuração
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 1. Pré-requisitos
+```bash
+# Node.js 18+ e npm/yarn
+node --version
+npm --version
 
-**Use GitHub Codespaces**
+# Supabase CLI
+npm install -g supabase
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 2. Configuração do Projeto
+```bash
+# Clonar o repositório
+git clone <repository-url>
+cd nordata-ai
 
-## What technologies are used for this project?
+# Instalar dependências
+npm install
 
-This project is built with:
+# Configurar Supabase
+supabase start
+supabase db push
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 3. Configuração de Secrets
+Configure os seguintes secrets no Supabase:
+```bash
+# Dashboard > Settings > Edge Functions > Secrets
+DATABRICKS_API_URL=https://your-databricks-endpoint.com
+DATABRICKS_TOKEN=dapi123456789abcdef
+```
 
-## How can I deploy this project?
+### 4. Configuração do Master User
+```bash
+# Executar função para criar usuário master
+supabase functions invoke setup-master-user
+```
 
-Simply open [Lovable](https://lovable.dev/projects/dabcbcd3-532f-4a38-9ed3-ee8822d33b3e) and click on Share -> Publish.
+### 5. Execução Local
+```bash
+# Desenvolvimento
+npm run dev
 
-## Can I connect a custom domain to my Lovable project?
+# Build para produção
+npm run build
+```
 
-Yes, you can!
+## 🔑 Credenciais de Acesso
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Usuário Master (Administrador)
+- **Email**: `iamjorgear80@gmail.com`
+- **Senha**: `Jorge41304254#`
+- **Permissões**: Acesso total ao sistema
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Clientes
+- Acesso apenas por convite
+- Criados pelo administrador
+- Permissões limitadas aos próprios dados
+
+## 📖 Documentação
+
+### Guias Disponíveis
+- [**Documentação Técnica**](./docs/README.md) - Arquitetura e implementação
+- [**Guia de Deploy**](./docs/DEPLOYMENT.md) - Configuração de produção
+- [**Documentação da API**](./docs/API.md) - Endpoints e funções
+
+### Funcionalidades por Página
+
+#### `/login`
+- ✅ Autenticação segura
+- ✅ Suporte a tokens de convite
+- ✅ Validação de credenciais
+- ✅ Redirecionamento por role
+
+#### `/dashboard`
+- ✅ Estatísticas personalizadas
+- ✅ Arquivos recentes
+- ✅ Ações rápidas
+- ✅ Visão geral da conta
+
+#### `/upload`
+- ✅ Upload drag-and-drop
+- ✅ Validação de arquivos
+- ✅ Processamento automático
+- ✅ Acompanhamento de status
+
+#### `/admin`
+- ✅ Gestão de usuários
+- ✅ Criação de convites
+- ✅ Estatísticas da plataforma
+- ✅ Monitoramento de atividades
+
+#### `/chatbot`
+- ✅ Chat com IA
+- ✅ Contexto baseado em dados
+- ✅ Histórico de conversas
+- ✅ Respostas personalizadas
+
+## 🛡️ Segurança e Compliance
+
+### Proteção de Dados
+- **LGPD** e **Lei 25.326** compliant
+- **Row Level Security** em todas as tabelas
+- **Criptografia** de dados sensíveis
+- **Auditoria** de todas as operações
+
+### Validações
+- Tipos de arquivo permitidos
+- Tamanho máximo (50MB)
+- Autenticação obrigatória
+- Verificação de permissões
+
+## 🧪 Testes
+
+### Fluxo de Teste Completo
+```bash
+# 1. Login como master
+# Email: iamjorgear80@gmail.com
+# Senha: Jorge41304254#
+
+# 2. Criar convite para cliente
+# Admin Panel > Convidar Usuário
+
+# 3. Fazer upload de arquivo
+# Formatos: CSV, Excel, JSON
+# Máximo: 50MB
+
+# 4. Acompanhar processamento
+# Status: uploaded → processing → done
+
+# 5. Testar chatbot
+# Conversar sobre dados processados
+```
+
+### Validações Importantes
+- ✅ Todos os botões funcionais
+- ✅ Redirecionamentos corretos
+- ✅ Tratamento de erros
+- ✅ Feedback visual adequado
+- ✅ Segurança por roles
+
+## 📈 Monitoramento
+
+### Métricas Disponíveis
+- Tempo de processamento
+- Taxa de sucesso de uploads
+- Atividade por usuário
+- Insights gerados
+
+### Logs do Sistema
+- Processing logs
+- Edge function logs
+- Database logs
+- Auth logs
+
+## 🔮 Roadmap
+
+### Próximas Funcionalidades
+- [ ] Notificações push
+- [ ] API pública
+- [ ] Dashboards customizáveis
+- [ ] Relatórios automatizados
+- [ ] Auditoria avançada
+
+## 🤝 Suporte
+
+### Contato
+- **Email**: suporte@nordata.ai
+- **Documentação**: [docs/](./docs/)
+- **Issues**: GitHub Issues
+
+### Troubleshooting
+Consulte a [documentação técnica](./docs/README.md) para problemas comuns e soluções.
+
+---
+
+**Desenvolvido por**: NORDATA.AI Team  
+**Versão**: 1.0.0  
+**Licença**: Proprietária  
+**Última Atualização**: 28/01/2025
