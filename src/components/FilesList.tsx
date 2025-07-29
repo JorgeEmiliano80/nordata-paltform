@@ -9,11 +9,25 @@ import { es } from 'date-fns/locale';
 import { useFiles } from '@/hooks/useFiles';
 
 const FilesList: React.FC = () => {
-  const { files, loading, fetchFiles } = useFiles();
+  const { files, loading, refetchFiles, deleteFile, processFile } = useFiles();
 
   useEffect(() => {
-    fetchFiles();
+    refetchFiles();
   }, []);
+
+  const handleDelete = async (fileId: string) => {
+    const result = await deleteFile(fileId);
+    if (result.success) {
+      refetchFiles();
+    }
+  };
+
+  const handleProcess = async (fileId: string) => {
+    const result = await processFile(fileId);
+    if (result.success) {
+      refetchFiles();
+    }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -122,13 +136,26 @@ const FilesList: React.FC = () => {
                       <Eye className="h-4 w-4 mr-1" />
                       Ver
                     </Button>
+                    {file.status === 'uploaded' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleProcess(file.id)}
+                      >
+                        Procesar
+                      </Button>
+                    )}
                     {file.status === 'done' && (
                       <Button variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-1" />
                         Descargar
                       </Button>
                     )}
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDelete(file.id)}
+                    >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Eliminar
                     </Button>
