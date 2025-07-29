@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, Users, TrendingUp, DollarSign, Activity, Bell, RefreshCw } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, DollarSign, Activity, Bell, RefreshCw, FileText, Database } from 'lucide-react';
 
 import { ClientSegmentsDashboard } from '@/components/analytics/ClientSegmentsDashboard';
 import DataFlowDashboard from '@/components/analytics/DataFlowDashboard';
@@ -23,11 +24,15 @@ const Analytics: React.FC = () => {
     dataFlowMetrics,
     behaviorEvents,
     recommendations,
+    financialMetrics,
     fetchClientSegments,
     fetchDataFlowMetrics,
     fetchBehaviorEvents,
     fetchRecommendations,
-    generateRecommendations
+    fetchFinancialMetrics,
+    generateRecommendations,
+    calculateSegmentation,
+    generateDataFlowMetrics
   } = useAnalytics();
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -37,6 +42,7 @@ const Analytics: React.FC = () => {
     fetchDataFlowMetrics();
     fetchBehaviorEvents();
     fetchRecommendations();
+    fetchFinancialMetrics();
   }, []);
 
   const refreshData = async () => {
@@ -44,9 +50,19 @@ const Analytics: React.FC = () => {
       fetchClientSegments(),
       fetchDataFlowMetrics(),
       fetchBehaviorEvents(),
-      fetchRecommendations()
+      fetchRecommendations(),
+      fetchFinancialMetrics()
     ]);
   };
+
+  // Calcular métricas de resumen
+  const totalFiles = dataFlowMetrics.reduce((sum, metric) => 
+    sum + metric.files_uploaded_count + metric.files_completed_count, 0
+  );
+  
+  const totalUsers = clientSegments.length;
+  const totalRevenue = financialMetrics.reduce((sum, metric) => sum + metric.revenue, 0);
+  const pendingRecommendations = recommendations.filter(r => !r.is_implemented).length;
 
   return (
     <div className="space-y-8">
@@ -78,6 +94,15 @@ const Analytics: React.FC = () => {
           >
             <Bell className="h-4 w-4 mr-2" />
             Generar Recomendaciones
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => calculateSegmentation()}
+            disabled={loading}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Calcular Segmentación
           </Button>
         </div>
       </div>
@@ -111,20 +136,91 @@ const Analytics: React.FC = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Overview Content */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Archivos</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalFiles}</div>
+                <p className="text-xs text-muted-foreground">
+                  Archivos procesados
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalUsers}</div>
+                <p className="text-xs text-muted-foreground">
+                  Usuarios registrados
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Revenue Total</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  Ingresos acumulados
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Recomendaciones</CardTitle>
+                <Bell className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{pendingRecommendations}</div>
+                <p className="text-xs text-muted-foreground">
+                  Pendientes de implementar
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
-              <CardTitle>Resumen General</CardTitle>
+              <CardTitle>Estado del Sistema</CardTitle>
               <CardDescription>
-                Vista rápida de las métricas más importantes
+                Información general sobre el funcionamiento de la plataforma
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert>
-                <AlertDescription>
-                  Esta sección está en desarrollo. ¡Pronto podrás ver aquí un resumen completo!
-                </AlertDescription>
-              </Alert>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Flujo de Datos</span>
+                  <Badge variant="outline">
+                    <Database className="h-3 w-3 mr-1" />
+                    Activo
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Integración Databricks</span>
+                  <Badge variant="outline">
+                    <Activity className="h-3 w-3 mr-1" />
+                    Configurado
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Analytics</span>
+                  <Badge variant="outline">
+                    <BarChart3 className="h-3 w-3 mr-1" />
+                    Operativo
+                  </Badge>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

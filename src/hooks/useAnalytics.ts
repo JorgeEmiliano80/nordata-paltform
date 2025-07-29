@@ -16,6 +16,12 @@ export interface ClientSegment {
   criteria: any;
   created_at: string;
   updated_at: string;
+  // Datos del perfil del usuario
+  user_profile?: {
+    full_name: string;
+    company_name: string;
+    role: string;
+  };
 }
 
 export interface FinancialMetric {
@@ -48,6 +54,11 @@ export interface ClientRecommendation {
   created_at: string;
   expires_at: string;
   metadata: any;
+  // Datos del perfil del usuario
+  user_profile?: {
+    full_name: string;
+    company_name: string;
+  };
 }
 
 export interface DataFlowMetric {
@@ -89,21 +100,42 @@ export const useAnalytics = () => {
   const fetchClientSegments = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Primero obtener los segmentos
+      const { data: segments, error: segmentsError } = await supabase
         .from('client_segments')
-        .select(`
-          *,
-          profiles!inner(full_name, company_name, role)
-        `)
+        .select('*')
         .order('segment_updated_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching client segments:', error);
+      if (segmentsError) {
+        console.error('Error fetching client segments:', segmentsError);
         toast.error('Error al cargar segmentación de clientes');
         return;
       }
 
-      setClientSegments(data || []);
+      // Luego obtener los perfiles de los usuarios
+      if (segments && segments.length > 0) {
+        const userIds = segments.map(s => s.user_id);
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, company_name, role')
+          .in('user_id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          // Continuar sin los perfiles si hay error
+        }
+
+        // Combinar los datos
+        const segmentsWithProfiles = segments.map(segment => ({
+          ...segment,
+          user_profile: profiles?.find(p => p.user_id === segment.user_id)
+        }));
+
+        setClientSegments(segmentsWithProfiles);
+      } else {
+        setClientSegments([]);
+      }
     } catch (error) {
       console.error('Error fetching client segments:', error);
       toast.error('Error al cargar segmentación de clientes');
@@ -147,35 +179,51 @@ export const useAnalytics = () => {
   const fetchRecommendations = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Primero obtener las recomendaciones
+      const { data: recommendations, error: recommendationsError } = await supabase
         .from('client_recommendations')
-        .select(`
-          *,
-          profiles!inner(full_name, company_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching recommendations:', error);
+      if (recommendationsError) {
+        console.error('Error fetching recommendations:', recommendationsError);
         toast.error('Error al cargar recomendaciones');
         return;
       }
 
-      // Transform the data to match our interface
-      const transformedData = (data || []).map(item => ({
-        ...item,
-        action_items: Array.isArray(item.action_items) ? 
-          item.action_items.filter((item: any) => typeof item === 'string') : 
-          typeof item.action_items === 'string' ? [item.action_items] : [],
-        priority: item.priority || 'medium',
-        potential_impact: item.potential_impact || '',
-        implementation_effort: item.implementation_effort || '',
-        is_implemented: item.is_implemented || false,
-        expires_at: item.expires_at || '',
-        metadata: item.metadata || {}
-      }));
+      // Luego obtener los perfiles de los usuarios
+      if (recommendations && recommendations.length > 0) {
+        const userIds = recommendations.map(r => r.user_id);
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, company_name')
+          .in('user_id', userIds);
 
-      setRecommendations(transformedData);
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          // Continuar sin los perfiles si hay error
+        }
+
+        // Combinar los datos y transformar
+        const recommendationsWithProfiles = recommendations.map(rec => ({
+          ...rec,
+          action_items: Array.isArray(rec.action_items) ? 
+            rec.action_items.filter((item: any) => typeof item === 'string') : 
+            typeof rec.action_items === 'string' ? [rec.action_items] : [],
+          priority: rec.priority || 'medium',
+          potential_impact: rec.potential_impact || '',
+          implementation_effort: rec.implementation_effort || '',
+          is_implemented: rec.is_implemented || false,
+          expires_at: rec.expires_at || '',
+          metadata: rec.metadata || {},
+          user_profile: profiles?.find(p => p.user_id === rec.user_id)
+        }));
+
+        setRecommendations(recommendationsWithProfiles);
+      } else {
+        setRecommendations([]);
+      }
     } catch (error) {
       console.error('Error fetching recommendations:', error);
       toast.error('Error al cargar recomendaciones');
@@ -228,7 +276,7 @@ export const useAnalytics = () => {
         return;
       }
 
-      // Transform the data to match our interface
+      // Transformar los datos para que coincidan con la interfaz
       const transformedData = (data || []).map(item => ({
         ...item,
         ip_address: (item.ip_address || '127.0.0.1') as string,
@@ -330,7 +378,7 @@ export const useAnalytics = () => {
           file_id: fileId,
           session_id: sessionId,
           duration_seconds: duration || 0,
-          ip_address: '127.0.0.1', // Would be populated server-side in production
+          ip_address: '127.0.0.1', // Sería poblado server-side en producción
           user_agent: navigator.userAgent
         });
 
