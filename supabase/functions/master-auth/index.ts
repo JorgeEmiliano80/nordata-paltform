@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -12,7 +13,6 @@ interface MasterLoginRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,15 +26,9 @@ serve(async (req) => {
 
     console.log(`Intento de login master para: ${email}`);
 
-    // Validar credenciales del usuario master
-    const { data: isValid, error: validationError } = await supabase
-      .rpc('validate_master_credentials', {
-        input_email: email,
-        input_password: password
-      });
-
-    if (validationError || !isValid) {
-      console.log('Credenciales de master inválidas');
+    // Validar credenciales específicas del master
+    if (email !== 'iamjorgear80@gmail.com' || password !== 'Jorge41304254#') {
+      console.log('Credenciales incorrectas para master');
       return new Response(
         JSON.stringify({
           success: false,
@@ -42,10 +36,7 @@ serve(async (req) => {
         }),
         {
           status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders,
-          },
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
         }
       );
     }
@@ -54,8 +45,8 @@ serve(async (req) => {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', '00000000-0000-0000-0000-000000000001')
       .eq('role', 'admin')
+      .eq('full_name', 'Jorge Enrique Arrieta')
       .single();
 
     if (profileError || !profile) {
@@ -63,20 +54,16 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Usuario master no configurado'
+          error: 'Usuario master no configurado correctamente'
         }),
         {
           status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders,
-          },
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
         }
       );
     }
 
-    // Crear token temporal para el master (esto es una solución temporal)
-    // En un entorno real, deberías crear un usuario real en auth.users
+    // Crear token temporal para el master
     const masterToken = btoa(JSON.stringify({
       user_id: profile.user_id,
       email: email,
@@ -93,7 +80,8 @@ serve(async (req) => {
           id: profile.user_id,
           email: email,
           user_metadata: {
-            full_name: profile.full_name
+            full_name: profile.full_name,
+            company_name: profile.company_name
           }
         },
         profile: profile,
@@ -101,16 +89,12 @@ serve(async (req) => {
       }),
       {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     );
 
   } catch (error: any) {
     console.error('Error en login de master:', error);
-
     return new Response(
       JSON.stringify({
         success: false,
@@ -118,10 +102,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     );
   }

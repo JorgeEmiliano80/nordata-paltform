@@ -16,14 +16,18 @@ const Dashboard = () => {
   const { fetchAdminData } = useAdmin();
   const navigate = useNavigate();
   const [adminStats, setAdminStats] = useState({ users: [], invitations: [] });
+  const [adminLoading, setAdminLoading] = useState(false);
 
   const fileStats = getFileStats();
 
   useEffect(() => {
     if (isAdmin()) {
-      fetchAdminData().then(setAdminStats);
+      setAdminLoading(true);
+      fetchAdminData()
+        .then(setAdminStats)
+        .finally(() => setAdminLoading(false));
     }
-  }, [isAdmin]);
+  }, [isAdmin, fetchAdminData]);
 
   const recentFiles = files.slice(0, 5);
 
@@ -51,13 +55,17 @@ const Dashboard = () => {
     });
   };
 
-  if (filesLoading) {
+  // Mostrar loading apenas quando necessário
+  if (filesLoading || (isAdmin() && adminLoading)) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Carregando dados...</p>
+            </div>
           </div>
         </div>
       </div>

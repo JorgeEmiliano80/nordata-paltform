@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +23,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar si hay sesión de master almacenada
+    // Verificar sesión de master almacenada
     const checkMasterSession = () => {
       const masterSession = localStorage.getItem('master_session');
       if (masterSession) {
@@ -50,10 +51,10 @@ export const useAuth = () => {
           setUser(session?.user ?? null);
           
           if (session?.user) {
-            // Buscar perfil do usuário após mudança de autenticação
+            // Buscar perfil del usuario
             setTimeout(async () => {
               await fetchUserProfile(session.user.id);
-            }, 0);
+            }, 100);
           } else {
             setProfile(null);
           }
@@ -61,7 +62,7 @@ export const useAuth = () => {
         }
       );
 
-      // Verificar sessão existente
+      // Verificar sessión existente
       supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session);
         setUser(session?.user ?? null);
@@ -85,12 +86,17 @@ export const useAuth = () => {
 
       if (error) {
         console.error('Erro ao buscar perfil:', error);
+        // Se não encontrar perfil, limpar estados
+        if (error.code === 'PGRST116') {
+          setProfile(null);
+        }
         return;
       }
 
       setProfile(data);
     } catch (error) {
       console.error('Erro ao buscar perfil:', error);
+      setProfile(null);
     }
   };
 
@@ -104,7 +110,7 @@ export const useAuth = () => {
 
         if (error) {
           console.error('Error en autenticación master:', error);
-          return { error: { message: 'Credenciales de master inválidas' } };
+          return { error: { message: 'Error de conexión con el servidor' } };
         }
 
         if (data && data.success) {
@@ -168,8 +174,6 @@ export const useAuth = () => {
 
         if (inviteError || !success) {
           console.error('Erro ao usar convite:', inviteError);
-          // Remover usuário se falhou ao usar convite
-          await supabase.auth.admin.deleteUser(data.user.id);
           return { error: { message: 'Token de convite inválido' } };
         }
       } catch (inviteError) {
@@ -182,7 +186,7 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
-    // Verificar si es sesión de master
+    // Verificar se é sessão de master
     const masterSession = localStorage.getItem('master_session');
     if (masterSession) {
       localStorage.removeItem('master_session');

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,34 +24,56 @@ serve(async (req) => {
 
     console.log('Configurando usuario master...');
 
-    // Crear usuario en auth.users si no existe
+    // Verificar si el usuario ya existe
+    const { data: existingUser, error: checkError } = await supabase.auth.admin.getUserById('00000000-0000-0000-0000-000000000001');
+    
+    if (checkError && !checkError.message.includes('User not found')) {
+      console.error('Error verificando usuario:', checkError);
+    }
+
+    // Crear o actualizar usuario en auth.users
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: 'iamjorgear80@gmail.com',
       password: 'Jorge41304254#',
       email_confirm: true,
       user_metadata: {
-        full_name: 'Jorge Enrique Arrieta'
+        full_name: 'Jorge Enrique Arrieta',
+        company_name: 'NORDATA.AI',
+        industry: 'technology'
       }
     });
 
-    if (authError && !authError.message.includes('already been registered')) {
-      console.error('Error creando usuario auth:', authError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: authError.message
-        }),
-        {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders,
-          },
+    let userId = '00000000-0000-0000-0000-000000000001';
+    
+    if (authError) {
+      if (authError.message.includes('already been registered')) {
+        console.log('Usuario ya existe en auth.users');
+        // Buscar el usuario existente
+        const { data: users, error: listError } = await supabase.auth.admin.listUsers();
+        if (!listError) {
+          const existingMaster = users.users.find(u => u.email === 'iamjorgear80@gmail.com');
+          if (existingMaster) {
+            userId = existingMaster.id;
+            console.log('Usuario encontrado con ID:', userId);
+          }
         }
-      );
+      } else {
+        console.error('Error creando usuario auth:', authError);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: authError.message
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          }
+        );
+      }
+    } else if (authUser?.user) {
+      userId = authUser.user.id;
+      console.log('Usuario creado con ID:', userId);
     }
-
-    const userId = authUser?.user?.id || '00000000-0000-0000-0000-000000000001';
 
     // Crear o actualizar perfil
     const { data: profile, error: profileError } = await supabase
@@ -63,7 +85,9 @@ serve(async (req) => {
         industry: 'technology',
         role: 'admin',
         accepted_terms: true,
-        is_active: true
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -77,10 +101,7 @@ serve(async (req) => {
         }),
         {
           status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders,
-          },
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
         }
       );
     }
@@ -96,16 +117,12 @@ serve(async (req) => {
       }),
       {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     );
 
   } catch (error: any) {
     console.error('Error configurando usuario master:', error);
-
     return new Response(
       JSON.stringify({
         success: false,
@@ -113,10 +130,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     );
   }
