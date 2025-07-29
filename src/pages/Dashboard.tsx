@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
 
 const Dashboard = () => {
   const { user, profile, isAdmin } = useAuth();
@@ -82,8 +82,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
@@ -191,7 +189,7 @@ const Dashboard = () => {
                       description="Gestionar usuarios y configuración"
                       icon={Shield}
                       onClick={() => navigate('/admin')}
-                      variant="hero"
+                      variant="default"
                     />
                     <QuickAction
                       title="Monitoreo de Archivos"
@@ -207,7 +205,7 @@ const Dashboard = () => {
                       description="Enviar datos para análisis"
                       icon={Upload}
                       onClick={() => navigate('/upload')}
-                      variant="hero"
+                      variant="default"
                     />
                     <QuickAction
                       title="Chat con IA"
