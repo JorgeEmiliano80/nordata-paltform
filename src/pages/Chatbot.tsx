@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Send, 
   Bot, 
@@ -14,8 +15,11 @@ import {
   MessageSquare,
   FileText,
   Loader2,
-  AlertCircle,
-  Info
+  Info,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Lightbulb
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -27,66 +31,183 @@ import { useFiles } from '@/hooks/useFiles';
 const ChatbotPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [selectedFileId, setSelectedFileId] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { messages, loading, sending, sendMessage, fetchChatHistory, clearHistory } = useChatbot();
   const { files } = useFiles();
 
+  // Simulate messages with AI responses
+  const [chatMessages, setChatMessages] = useState([
+    {
+      id: 1,
+      type: 'bot',
+      content: 'Olá! Sou seu assistente de IA para análise de dados. Posso ajudar você a entender melhor seus dados de vendas, segmentar clientes e gerar recomendações para seu negócio. Como posso ajudá-lo hoje?',
+      timestamp: new Date()
+    }
+  ]);
+
+  const quickQuestions = [
+    {
+      icon: TrendingUp,
+      text: "Como estão minhas vendas este mês?",
+      category: "Performance"
+    },
+    {
+      icon: Users,
+      text: "Quais são meus melhores clientes?",
+      category: "Clientes"
+    },
+    {
+      icon: DollarSign,
+      text: "Como posso aumentar minha receita?",
+      category: "Estratégia"
+    },
+    {
+      icon: Lightbulb,
+      text: "Que insights você pode gerar dos meus dados?",
+      category: "Insights"
+    }
+  ];
+
+  const aiResponses = {
+    vendas: `📊 **Análise de Vendas Atual:**
+
+**Performance do Mês:**
+• Receita total: R$ 248.500 (+12.5% vs mês anterior)
+• Número de vendas: 1.245 (+8.2%)
+• Ticket médio: R$ 199 (-2.1%)
+
+**Tendências identificadas:**
+✅ Crescimento consistente em produtos premium
+⚠️ Leve queda no ticket médio - considere estratégias de upselling
+📈 Pico de vendas nas terças e quartas-feiras
+
+**Recomendação:** Foque em aumentar o valor médio por transação através de ofertas complementares.`,
+
+    clientes: `👥 **Análise de Clientes:**
+
+**Seus Top 5 Clientes:**
+1. **Maria Silva** - R$ 5.240 (12 pedidos) - Segmento VIP
+2. **João Santos** - R$ 4.180 (8 pedidos) - Segmento Premium  
+3. **Ana Costa** - R$ 3.920 (15 pedidos) - Segmento Premium
+4. **Pedro Lima** - R$ 3.450 (6 pedidos) - Segmento Regular
+5. **Carla Souza** - R$ 2.890 (9 pedidos) - Segmento Regular
+
+**Insights importantes:**
+• 45 clientes VIP geram 36% da sua receita total
+• 89 clientes estão inativos há mais de 60 dias
+• Taxa de retenção: 84% (excelente!)
+
+**Ação recomendada:** Crie um programa de fidelidade para clientes Premium que podem virar VIP.`,
+
+    receita: `💰 **Estratégias para Aumentar Receita:**
+
+**Oportunidades Identificadas:**
+
+**1. Segmentação VIP (Potencial: +R$ 45k/mês)**
+• Seus clientes VIP têm alto engajamento
+• Crie ofertas exclusivas e lançamentos antecipados
+• Programa de cashback de 3-5%
+
+**2. Reativação de Inativos (Potencial: +R$ 12k/mês)**
+• 89 clientes inativos representam oportunidade perdida
+• Campanha "volta que eu te explico" com 15% desconto
+• Email marketing personalizado
+
+**3. Cross-selling Inteligente (Potencial: +R$ 28k/mês)**
+• Análise mostra que 67% dos clientes compram apenas 1 categoria
+• Recomendações automáticas baseadas no histórico
+• Bundles com desconto progressivo
+
+**Prioridade:** Comece com reativação - ROI mais rápido!`,
+
+    insights: `🔍 **Insights Avançados dos Seus Dados:**
+
+**Padrões Descobertos:**
+
+**🕐 Comportamento Temporal:**
+• Pico de vendas: Terça-feira 14h-16h
+• Melhor dia da semana: Quarta-feira
+• Sazonalidade: Crescimento de 23% no final do mês
+
+**🎯 Segmentação Comportamental:**
+• **Champions (5%):** Compram frequentemente, alto valor
+• **Potenciais Leais (20%):** Boa frequência, valor médio
+• **Em Risco (10%):** Eram bons, mas estão sumindo
+
+**📊 Correlações Interessantes:**
+• Clientes de SP gastam 34% mais que média nacional
+• Produtos acima de R$ 300 têm taxa conversão 2x maior
+• Reviews 5⭐ aumentam recompra em 67%
+
+**🚀 Oportunidade Oculta:**
+Clientes que compram categoria A + B gastam 145% mais. Crie campanhas cruzadas!`
+  };
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Load chat history on mount
-  useEffect(() => {
-    fetchChatHistory(selectedFileId);
-  }, [selectedFileId]);
+  }, [chatMessages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || sending) return;
+    if (!message.trim() || isLoading) return;
 
-    const messageToSend = message.trim();
+    const userMessage = {
+      id: chatMessages.length + 1,
+      type: 'user' as const,
+      content: message,
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
     setMessage('');
-    
-    // Simulate message sending for now
-    try {
-      const simulatedResponse = `Gracias por tu mensaje: "${messageToSend}". Esta es una respuesta simulada del chatbot. El sistema de chat está funcionando correctamente.`;
+    setIsLoading(true);
+
+    // Simulate AI processing
+    setTimeout(() => {
+      let response = "Entendi sua pergunta! Com base nos dados carregados, posso gerar uma análise detalhada. Para respostas mais precisas, certifique-se de que seus dados estão atualizados na seção de Upload.";
       
-      // Add user message
-      const userMessage = {
-        id: Date.now().toString(),
-        user_id: 'current-user',
-        message: messageToSend,
-        is_user_message: true,
-        created_at: new Date().toISOString(),
-        file_id: selectedFileId
-      };
-      
-      // Add bot response
+      // Simple keyword matching for demo
+      const question = message.toLowerCase();
+      if (question.includes('venda') || question.includes('receita') || question.includes('faturamento')) {
+        response = aiResponses.vendas;
+      } else if (question.includes('cliente') || question.includes('consumidor')) {
+        response = aiResponses.clientes;
+      } else if (question.includes('aumentar') || question.includes('melhorar') || question.includes('estratégia')) {
+        response = aiResponses.receita;
+      } else if (question.includes('insight') || question.includes('análise') || question.includes('padrão')) {
+        response = aiResponses.insights;
+      }
+
       const botMessage = {
-        id: (Date.now() + 1).toString(),
-        user_id: 'current-user',
-        message: simulatedResponse,
-        is_user_message: false,
-        created_at: new Date().toISOString(),
-        file_id: selectedFileId
+        id: chatMessages.length + 2,
+        type: 'bot' as const,
+        content: response,
+        timestamp: new Date()
       };
-      
-      // For now, just show success toast
-      toast.success('Mensaje enviado exitosamente');
-      
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Error al enviar mensaje');
-      setMessage(messageToSend); // Restore message on error
-    }
+
+      setChatMessages(prev => [...prev, botMessage]);
+      setIsLoading(false);
+    }, 2000);
+  };
+
+  const handleQuickQuestion = (question: string) => {
+    setMessage(question);
   };
 
   const handleClearHistory = async () => {
     if (!confirm('¿Estás seguro de que quieres eliminar todo el historial de chat?')) {
       return;
     }
+    
+    setChatMessages([{
+      id: 1,
+      type: 'bot',
+      content: 'Olá! Sou seu assistente de IA para análise de dados. Posso ajudar você a entender melhor seus dados de vendas, segmentar clientes e gerar recomendações para seu negócio. Como posso ajudá-lo hoje?',
+      timestamp: new Date()
+    }]);
     
     toast.success('Historial eliminado');
   };
@@ -95,27 +216,9 @@ const ChatbotPage: React.FC = () => {
     return files.filter(file => file.status === 'done');
   };
 
-  const formatMessageTime = (timestamp: string) => {
-    return format(new Date(timestamp), 'HH:mm', { locale: es });
+  const formatMessageTime = (timestamp: Date) => {
+    return format(timestamp, 'HH:mm', { locale: es });
   };
-
-  const groupedMessages = messages.reduce((groups: any[], message, index) => {
-    const prevMessage = messages[index - 1];
-    const currentDate = new Date(message.created_at).toDateString();
-    const prevDate = prevMessage ? new Date(prevMessage.created_at).toDateString() : null;
-
-    if (currentDate !== prevDate) {
-      groups.push({
-        type: 'date',
-        date: currentDate,
-        messages: [message]
-      });
-    } else {
-      groups[groups.length - 1].messages.push(message);
-    }
-
-    return groups;
-  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -126,10 +229,10 @@ const ChatbotPage: React.FC = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
-              Asistente IA
+              Assistente IA
             </h1>
             <p className="text-muted-foreground text-lg">
-              Chatea con tu asistente de análisis de datos
+              Chat inteligente com recomendações baseadas nos seus dados de negócio
             </p>
           </div>
 
@@ -141,20 +244,20 @@ const ChatbotPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <MessageSquare className="h-5 w-5" />
-                      Chat
+                      Chat com IA
                     </CardTitle>
                     <div className="flex items-center gap-2">
                       {selectedFileId && (
                         <Badge variant="outline" className="text-xs">
                           <FileText className="h-3 w-3 mr-1" />
-                          Archivo seleccionado
+                          Arquivo selecionado
                         </Badge>
                       )}
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleClearHistory}
-                        disabled={messages.length === 0}
+                        disabled={chatMessages.length <= 1}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -164,98 +267,82 @@ const ChatbotPage: React.FC = () => {
 
                 <CardContent className="flex-1 p-0">
                   <ScrollArea className="h-[500px] p-4">
-                    {loading ? (
-                      <div className="flex justify-center items-center h-full">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {messages.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center h-full text-center">
-                            <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">
-                              ¡Hola! Soy tu asistente de análisis de datos
-                            </h3>
-                            <p className="text-muted-foreground">
-                              Puedo ayudarte con preguntas sobre tus archivos, insights y análisis de datos.
-                            </p>
-                          </div>
-                        ) : (
-                          <>
-                            {groupedMessages.map((group, groupIndex) => (
-                              <div key={groupIndex}>
-                                {/* Date separator */}
-                                <div className="flex justify-center my-4">
-                                  <Badge variant="outline" className="text-xs">
-                                    {format(new Date(group.date), 'PPP', { locale: es })}
-                                  </Badge>
-                                </div>
-
-                                {/* Messages */}
-                                {group.messages.map((msg: any) => (
-                                  <div key={msg.id} className="space-y-2">
-                                    {msg.is_user_message ? (
-                                      <div className="flex justify-end">
-                                        <div className="max-w-[70%] bg-primary text-primary-foreground rounded-lg p-3">
-                                          <p className="text-sm">{msg.message}</p>
-                                          <p className="text-xs opacity-70 mt-1">
-                                            {formatMessageTime(msg.created_at)}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="flex justify-start">
-                                        <div className="max-w-[70%] bg-muted rounded-lg p-3">
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <Bot className="h-4 w-4 text-primary" />
-                                            <span className="text-xs font-medium">Asistente</span>
-                                          </div>
-                                          <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            {formatMessageTime(msg.created_at)}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            ))}
+                    <div className="space-y-4">
+                      {chatMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`flex items-start space-x-2 max-w-[80%] ${msg.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              msg.type === 'user' 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-accent text-accent-foreground'
+                            }`}>
+                              {msg.type === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                            </div>
                             
-                            {sending && (
-                              <div className="flex justify-start">
-                                <div className="max-w-[70%] bg-muted rounded-lg p-3">
-                                  <div className="flex items-center gap-2">
-                                    <Bot className="h-4 w-4 text-primary" />
-                                    <span className="text-xs font-medium">Asistente</span>
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    Escribiendo...
-                                  </p>
-                                </div>
+                            <div className={`rounded-lg p-3 ${
+                              msg.type === 'user'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted'
+                            }`}>
+                              <div className="text-sm whitespace-pre-line">
+                                {msg.content}
                               </div>
-                            )}
-                          </>
-                        )}
-                        
-                        <div ref={messagesEndRef} />
-                      </div>
-                    )}
+                              <div className="text-xs opacity-70 mt-1">
+                                {formatMessageTime(msg.timestamp)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {isLoading && (
+                        <div className="flex justify-start">
+                          <div className="flex items-start space-x-2">
+                            <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center">
+                              <Bot className="w-4 h-4" />
+                            </div>
+                            <div className="bg-muted rounded-lg p-3">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div ref={messagesEndRef} />
+                    </div>
                   </ScrollArea>
 
                   {/* Message Input */}
                   <div className="border-t p-4">
                     <form onSubmit={handleSendMessage} className="flex gap-2">
-                      <Input
+                      <Textarea
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Escribe tu mensaje..."
-                        disabled={sending}
-                        className="flex-1"
+                        placeholder="Digite sua pergunta sobre os dados do seu negócio..."
+                        disabled={isLoading}
+                        className="flex-1 min-h-[60px] resize-none"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage(e);
+                          }
+                        }}
                       />
-                      <Button type="submit" disabled={!message.trim() || sending}>
-                        {sending ? (
+                      <Button 
+                        type="submit" 
+                        disabled={!message.trim() || isLoading}
+                        variant="hero"
+                        size="icon"
+                        className="h-[60px] w-[60px]"
+                      >
+                        {isLoading ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Send className="h-4 w-4" />
@@ -269,10 +356,41 @@ const ChatbotPage: React.FC = () => {
 
             {/* Sidebar */}
             <div className="space-y-4">
+              {/* Quick Questions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Lightbulb className="w-5 h-5" />
+                    <span>Perguntas Rápidas</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {quickQuestions.map((question, index) => {
+                      const Icon = question.icon;
+                      return (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          className="w-full h-auto p-3 text-left flex flex-col items-start space-y-1"
+                          onClick={() => handleQuickQuestion(question.text)}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <Icon className="w-4 h-4" />
+                            <span className="text-xs text-muted-foreground">{question.category}</span>
+                          </div>
+                          <span className="text-sm font-normal">{question.text}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* File Selection */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Contexto del Archivo</CardTitle>
+                  <CardTitle className="text-lg">Contexto do Arquivo</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Select value={selectedFileId} onValueChange={setSelectedFileId}>
@@ -291,79 +409,70 @@ const ChatbotPage: React.FC = () => {
                   <p className="text-xs text-muted-foreground mt-2">
                     {selectedFileId && selectedFileId !== 'general' 
                       ? 'El asistente responderá con contexto del archivo seleccionado'
-                      : 'El asistente responderá preguntas generales sobre la plataforma'
+                      : 'El asistente responderá preguntas generales sobre análisis de datos'
                     }
                   </p>
                 </CardContent>
               </Card>
 
-              {/* Quick Actions */}
+              {/* AI Capabilities */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
+                  <CardTitle>Capacidades da IA</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    onClick={() => setMessage('¿Cómo puedo subir un archivo?')}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Subir archivo
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    onClick={() => setMessage('¿Qué tipos de insights puedo obtener?')}
-                  >
-                    <Info className="h-4 w-4 mr-2" />
-                    Tipos de insights
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    onClick={() => setMessage('¿Cómo funciona el procesamiento de datos?')}
-                  >
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    Procesamiento
-                  </Button>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                      <span>Análise de Performance</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Users className="w-4 h-4 text-accent" />
+                      <span>Segmentação de Clientes</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="w-4 h-4 text-data-flow" />
+                      <span>Otimização de Receita</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Lightbulb className="w-4 h-4 text-warning" />
+                      <span>Insights Preditivos</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
               {/* Usage Tips */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Consejos de Uso</CardTitle>
+                  <CardTitle className="text-lg">Dicas de Uso</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
                     <div className="flex items-start gap-2">
                       <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                       <div>
-                        <p className="font-medium">Selecciona un archivo</p>
+                        <p className="font-medium">Selecione um arquivo</p>
                         <p className="text-muted-foreground text-xs">
-                          Para obtener respuestas específicas sobre tus datos
+                          Para obter respostas específicas sobre seus dados
                         </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                       <div>
-                        <p className="font-medium">Sé específico</p>
+                        <p className="font-medium">Seja específico</p>
                         <p className="text-muted-foreground text-xs">
-                          Pregunta sobre patrones, tendencias o insights específicos
+                          Pergunte sobre padrões, tendências ou insights específicos
                         </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                       <div>
-                        <p className="font-medium">Usa lenguaje natural</p>
+                        <p className="font-medium">Use linguagem natural</p>
                         <p className="text-muted-foreground text-xs">
-                          No necesitas comandos especiales, solo pregunta normalmente
+                          Não precisa de comandos especiais, apenas pergunte normalmente
                         </p>
                       </div>
                     </div>
@@ -372,6 +481,37 @@ const ChatbotPage: React.FC = () => {
               </Card>
             </div>
           </div>
+
+          {/* AI Insights Summary */}
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Últimos Insights Gerados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border border-primary/20 rounded-lg bg-primary/5">
+                  <h4 className="font-semibold text-primary mb-2">🎯 Oportunidade Detectada</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Clientes VIP podem ser expandidos através de programa de indicação. Potencial de +R$ 45k/mês.
+                  </p>
+                </div>
+                
+                <div className="p-4 border border-warning/20 rounded-lg bg-warning/5">
+                  <h4 className="font-semibold text-warning mb-2">⚠️ Alerta de Risco</h4>
+                  <p className="text-sm text-muted-foreground">
+                    89 clientes inativos há 60+ dias. Risco de churn de R$ 12k em receita recorrente.
+                  </p>
+                </div>
+                
+                <div className="p-4 border border-success/20 rounded-lg bg-success/5">
+                  <h4 className="font-semibold text-success mb-2">✅ Tendência Positiva</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Taxa de retenção de 84% indica alta satisfação. Momento ideal para expansão de mercado.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
