@@ -1,9 +1,10 @@
+
 import { Card, CardContent } from '@/components/ui/card';
 
 const ClientsSection = () => {
   const clients = [
     {
-      name: "Starfly Empresa Aérea",
+      name: "Starfly",
       logo: "/lovable-uploads/9d59e48a-a65c-40af-8cf1-18a0437e602e.png",
       alt: "Starfly Logo",
       description: "Industria Aérea"
