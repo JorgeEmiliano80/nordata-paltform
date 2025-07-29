@@ -47,7 +47,7 @@ const MasterSetup = () => {
           </div>
           <CardTitle className="text-2xl font-bold">Setup Usuario Master</CardTitle>
           <CardDescription>
-            Configura el usuario administrador principal de NORDATA.AI
+            Configura el usuario administrador principal de NordataPlatform
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -69,7 +69,8 @@ const MasterSetup = () => {
               <h4 className="font-medium text-blue-900 mb-2">Credenciales del Master:</h4>
               <p className="text-sm text-blue-800">
                 <strong>Email:</strong> iamjorgear80@gmail.com<br />
-                <strong>Contraseña:</strong> Jorge41304254#
+                <strong>Contraseña:</strong> Jorge41304254#<br />
+                <strong>Nombre:</strong> Jorge Emiliano
               </p>
             </div>
 

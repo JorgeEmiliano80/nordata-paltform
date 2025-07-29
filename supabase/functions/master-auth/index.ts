@@ -46,7 +46,7 @@ serve(async (req) => {
       .from('profiles')
       .select('*')
       .eq('role', 'admin')
-      .eq('full_name', 'Jorge Enrique Arrieta')
+      .eq('full_name', 'Jorge Emiliano')
       .eq('company_name', 'NORDATA.AI')
       .single();
 

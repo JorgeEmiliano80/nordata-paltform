@@ -30,7 +30,7 @@ serve(async (req) => {
       password: 'Jorge41304254#',
       email_confirm: true,
       user_metadata: {
-        full_name: 'Jorge Enrique Arrieta',
+        full_name: 'Jorge Emiliano',
         company_name: 'NORDATA.AI',
         industry: 'tecnologia'
       }
@@ -73,7 +73,7 @@ serve(async (req) => {
       .from('profiles')
       .upsert({
         user_id: userId,
-        full_name: 'Jorge Enrique Arrieta',
+        full_name: 'Jorge Emiliano',
         company_name: 'NORDATA.AI',
         industry: 'tecnologia',
         role: 'admin',
