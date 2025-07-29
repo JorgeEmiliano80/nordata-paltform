@@ -41,13 +41,11 @@ const Navbar = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
-                alt="NordataPlatform" 
-                className="w-6 h-6 object-contain"
-              />
-            </div>
+            <img 
+              src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
+              alt="NordataPlatform" 
+              className="w-8 h-8 object-contain"
+            />
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               NordataPlatform
             </span>

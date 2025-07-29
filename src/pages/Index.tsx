@@ -1,9 +1,11 @@
+
 import { useState } from 'react';
 import { Shield, Database, Brain, Users, FileText, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import MasterSetup from '@/components/MasterSetup';
 import ClientsSection from '@/components/ClientsSection';
+import BrainAnimation from '@/components/BrainAnimation';
 
 const Index = () => {
   const [showSetup, setShowSetup] = useState(false);
@@ -44,13 +46,11 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <img 
-                  src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
-                  alt="NordataPlatform" 
-                  className="w-6 h-6 object-contain"
-                />
-              </div>
+              <img 
+                src="/lovable-uploads/1a34d3c4-cb8e-427e-b062-a6af0a5e1f4d.png" 
+                alt="NordataPlatform" 
+                className="w-8 h-8 object-contain"
+              />
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 NordataPlatform
               </h1>
@@ -65,8 +65,8 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-r from-primary/10 to-accent/10">
-        <div className="container mx-auto px-4 text-center">
+      <section className="py-20 bg-gradient-to-r from-primary/10 to-accent/10 relative overflow-hidden">
+        <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Análisis Inteligente de Datos
@@ -81,6 +81,11 @@ const Index = () => {
               </Button>
             </div>
           </div>
+        </div>
+        
+        {/* Brain Animation */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0 opacity-20">
+          <BrainAnimation />
         </div>
       </section>
 
