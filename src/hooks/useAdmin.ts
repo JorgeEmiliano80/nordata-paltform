@@ -79,21 +79,33 @@ export const useAdmin = () => {
     try {
       setLoading(true);
 
+      // Obtener el token de sesión actual
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('No hay sesión activa');
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-invite-user', {
         body: {
           email,
           fullName,
           companyName,
           industry
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
       if (error) {
-        throw error;
+        console.error('Error calling function:', error);
+        throw new Error(error.message || 'Error al crear invitación');
       }
 
       if (data && data.success) {
         toast.success('Invitación creada exitosamente');
+        toast.info('Comparte el enlace de invitación con el usuario');
         return {
           success: true,
           invitationToken: data.invitationToken,
