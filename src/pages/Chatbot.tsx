@@ -11,6 +11,13 @@ import { useChatbot } from '@/hooks/useChatbot';
 import { useFiles } from '@/hooks/useFiles';
 import { toast } from 'sonner';
 
+interface DisplayMessage {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: string;
+}
+
 const Chatbot = () => {
   const [message, setMessage] = useState('');
   const { sendMessage, messages, loading } = useChatbot();
@@ -22,6 +29,14 @@ const Chatbot = () => {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Transform ChatMessage to DisplayMessage format
+  const displayMessages: DisplayMessage[] = messages.map(msg => ({
+    id: msg.id,
+    content: msg.message,
+    isUser: msg.is_user_message,
+    timestamp: msg.created_at
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,14 +88,14 @@ const Chatbot = () => {
               <div className="space-y-4">
                 <ScrollArea ref={scrollAreaRef} className="h-96 pr-4">
                   <div className="space-y-4">
-                    {messages.length === 0 && (
+                    {displayMessages.length === 0 && (
                       <div className="text-center text-muted-foreground py-8">
                         <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <p>¡Hola! Soy tu asistente IA. Pregúntame sobre tus datos.</p>
                       </div>
                     )}
                     
-                    {messages.map((msg, index) => (
+                    {displayMessages.map((msg, index) => (
                       <div key={index} className="space-y-2">
                         <div className={`flex items-start gap-3 ${msg.isUser ? 'flex-row-reverse' : ''}`}>
                           <div className={`rounded-full p-2 ${
@@ -150,10 +165,10 @@ const Chatbot = () => {
                             {file.file_type?.toUpperCase()}
                           </Badge>
                           <Badge 
-                            variant={file.status === 'processed' ? 'default' : 'secondary'} 
+                            variant={file.status === 'done' ? 'default' : 'secondary'} 
                             className="text-xs"
                           >
-                            {file.status === 'processed' ? 'Procesado' : 'Procesando'}
+                            {file.status === 'done' ? 'Procesado' : 'Procesando'}
                           </Badge>
                         </div>
                       </div>

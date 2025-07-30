@@ -2,11 +2,11 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FinancialDashboard from '@/components/analytics/FinancialDashboard';
-import PerformanceDashboard from '@/components/analytics/PerformanceDashboard';
-import BehaviorAnalyticsDashboard from '@/components/analytics/BehaviorAnalyticsDashboard';
-import ClientSegmentsDashboard from '@/components/analytics/ClientSegmentsDashboard';
+import { PerformanceDashboard } from '@/components/analytics/PerformanceDashboard';
+import { BehaviorAnalyticsDashboard } from '@/components/analytics/BehaviorAnalyticsDashboard';
+import { ClientSegmentsDashboard } from '@/components/analytics/ClientSegmentsDashboard';
 import DataFlowDashboard from '@/components/analytics/DataFlowDashboard';
-import RecommendationsDashboard from '@/components/analytics/RecommendationsDashboard';
+import { RecommendationsDashboard } from '@/components/analytics/RecommendationsDashboard';
 
 const Analytics = () => {
   return (
@@ -34,7 +34,7 @@ const Analytics = () => {
           </TabsContent>
 
           <TabsContent value="performance" className="space-y-4">
-            <PerformanceDashboard />
+            <PerformanceDashboard loading={false} />
           </TabsContent>
 
           <TabsContent value="behavior" className="space-y-4">
@@ -42,7 +42,11 @@ const Analytics = () => {
           </TabsContent>
 
           <TabsContent value="segments" className="space-y-4">
-            <ClientSegmentsDashboard />
+            <ClientSegmentsDashboard 
+              segments={[]} 
+              onRefresh={() => {}} 
+              loading={false} 
+            />
           </TabsContent>
 
           <TabsContent value="dataflow" className="space-y-4">
