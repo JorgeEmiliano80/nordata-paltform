@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FinancialDashboard from '@/components/analytics/FinancialDashboard';
 import { PerformanceDashboard } from '@/components/analytics/PerformanceDashboard';
@@ -7,8 +7,26 @@ import { BehaviorAnalyticsDashboard } from '@/components/analytics/BehaviorAnaly
 import { ClientSegmentsDashboard } from '@/components/analytics/ClientSegmentsDashboard';
 import DataFlowDashboard from '@/components/analytics/DataFlowDashboard';
 import { RecommendationsDashboard } from '@/components/analytics/RecommendationsDashboard';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 const Analytics = () => {
+  const {
+    loading,
+    clientSegments,
+    recommendations,
+    behaviorEvents,
+    fetchClientSegments,
+    fetchRecommendations,
+    fetchBehaviorEvents,
+    generateRecommendations
+  } = useAnalytics();
+
+  useEffect(() => {
+    fetchClientSegments();
+    fetchRecommendations();
+    fetchBehaviorEvents();
+  }, []);
+
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="space-y-6">
@@ -34,18 +52,22 @@ const Analytics = () => {
           </TabsContent>
 
           <TabsContent value="performance" className="space-y-4">
-            <PerformanceDashboard loading={false} />
+            <PerformanceDashboard loading={loading} />
           </TabsContent>
 
           <TabsContent value="behavior" className="space-y-4">
-            <BehaviorAnalyticsDashboard />
+            <BehaviorAnalyticsDashboard 
+              events={behaviorEvents}
+              onRefresh={fetchBehaviorEvents}
+              loading={loading}
+            />
           </TabsContent>
 
           <TabsContent value="segments" className="space-y-4">
             <ClientSegmentsDashboard 
-              segments={[]} 
-              onRefresh={() => {}} 
-              loading={false} 
+              segments={clientSegments} 
+              onRefresh={fetchClientSegments} 
+              loading={loading} 
             />
           </TabsContent>
 
@@ -54,7 +76,12 @@ const Analytics = () => {
           </TabsContent>
 
           <TabsContent value="recommendations" className="space-y-4">
-            <RecommendationsDashboard />
+            <RecommendationsDashboard 
+              recommendations={recommendations}
+              onRefresh={fetchRecommendations}
+              onGenerate={generateRecommendations}
+              loading={loading}
+            />
           </TabsContent>
         </Tabs>
       </div>
