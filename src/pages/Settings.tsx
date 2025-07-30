@@ -9,13 +9,15 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Settings as SettingsIcon, User, Bell, Shield, Palette, Globe } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/components/ThemeProvider';
 import { useTranslation } from 'react-i18next';
+import { useCurrency } from '@/context/CurrencyContext';
 import { toast } from 'sonner';
 
 const Settings = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
+  const { selectedCurrency, changeCurrency, supportedCurrencies } = useCurrency();
   const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
@@ -28,11 +30,13 @@ const Settings = () => {
     toast.success('Configuración guardada exitosamente');
   };
 
-  const supportedCurrencies = [
-    { code: 'USD', name: 'Dólar Estadounidense', symbol: '$' },
-    { code: 'BRL', name: 'Real Brasileño', symbol: 'R$' },
-    { code: 'ARS', name: 'Peso Argentino', symbol: '$' }
-  ];
+  const handleThemeChange = (value: string) => {
+    if (value === 'light' && theme === 'dark') {
+      toggleTheme();
+    } else if (value === 'dark' && theme === 'light') {
+      toggleTheme();
+    }
+  };
 
   if (!mounted) {
     return null;
@@ -63,14 +67,13 @@ const Settings = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="theme">Tema</Label>
-                <Select value={theme} onValueChange={setTheme}>
+                <Select value={theme} onValueChange={handleThemeChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar tema" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="light">Claro</SelectItem>
                     <SelectItem value="dark">Oscuro</SelectItem>
-                    <SelectItem value="system">Sistema</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -105,7 +108,7 @@ const Settings = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="currency">Moneda Principal</Label>
-                <Select defaultValue="USD">
+                <Select value={selectedCurrency} onValueChange={changeCurrency}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar moneda" />
                   </SelectTrigger>

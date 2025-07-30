@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area } from 'recharts';
 import { DollarSign, TrendingUp, TrendingDown, Users, Calendar, Download } from 'lucide-react';
 import { useAnalytics, type FinancialMetric } from '@/hooks/useAnalytics';
+import { useCurrency } from '@/context/CurrencyContext';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
@@ -23,6 +24,8 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
     loading 
   } = useAnalytics();
   
+  const { formatAmount, convertAmount } = useCurrency();
+  
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date()
@@ -35,15 +38,15 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
     fetchFinancialMetrics(startDate, endDate);
   }, [dateRange, fetchFinancialMetrics]);
 
-  // Calculate aggregated metrics
+  // Calculate aggregated metrics with currency conversion
   const calculateTotals = () => {
     return financialMetrics.reduce((acc, metric) => ({
-      revenue: acc.revenue + metric.revenue,
-      costs: acc.costs + metric.costs,
-      profit: acc.profit + metric.profit,
-      mrr: Math.max(acc.mrr, metric.mrr),
-      ltv: Math.max(acc.ltv, metric.ltv),
-      cac: Math.max(acc.cac, metric.cac)
+      revenue: acc.revenue + convertAmount(metric.revenue),
+      costs: acc.costs + convertAmount(metric.costs),
+      profit: acc.profit + convertAmount(metric.profit),
+      mrr: Math.max(acc.mrr, convertAmount(metric.mrr)),
+      ltv: Math.max(acc.ltv, convertAmount(metric.ltv)),
+      cac: Math.max(acc.cac, convertAmount(metric.cac))
     }), { revenue: 0, costs: 0, profit: 0, mrr: 0, ltv: 0, cac: 0 });
   };
 
@@ -58,46 +61,43 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
   const getRevenueData = () => {
     return financialMetrics.map(metric => ({
       date: format(new Date(metric.metric_date), 'dd/MM'),
-      revenue: metric.revenue,
-      costs: metric.costs,
-      profit: metric.profit,
-      mrr: metric.mrr
+      revenue: convertAmount(metric.revenue),
+      costs: convertAmount(metric.costs),
+      profit: convertAmount(metric.profit),
+      mrr: convertAmount(metric.mrr)
     }));
   };
 
   const getCashFlowData = () => {
     let runningBalance = 0;
     return financialMetrics.map(metric => {
-      runningBalance += metric.profit;
+      const convertedProfit = convertAmount(metric.profit);
+      runningBalance += convertedProfit;
       return {
         date: format(new Date(metric.metric_date), 'dd/MM'),
-        inflow: metric.revenue,
-        outflow: metric.costs,
+        inflow: convertAmount(metric.revenue),
+        outflow: convertAmount(metric.costs),
         balance: runningBalance
       };
     });
   };
 
   const getKPIData = () => {
-    return financialMetrics.map(metric => ({
-      date: format(new Date(metric.metric_date), 'dd/MM'),
-      ltv: metric.ltv,
-      cac: metric.cac,
-      ratio: metric.cac > 0 ? metric.ltv / metric.cac : 0
-    }));
-  };
-
-  const formatCurrency = (value: number | string) => {
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(numValue || 0);
+    return financialMetrics.map(metric => {
+      const convertedLtv = convertAmount(metric.ltv);
+      const convertedCac = convertAmount(metric.cac);
+      return {
+        date: format(new Date(metric.metric_date), 'dd/MM'),
+        ltv: convertedLtv,
+        cac: convertedCac,
+        ratio: convertedCac > 0 ? convertedLtv / convertedCac : 0
+      };
+    });
   };
 
   const formatTooltipValue = (value: any) => {
     if (typeof value === 'number') {
-      return formatCurrency(value);
+      return formatAmount(value);
     }
     return value?.toString() || '';
   };
@@ -145,7 +145,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.revenue)}</div>
+            <div className="text-2xl font-bold">{formatAmount(totals.revenue)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
               +12.5% desde el mes anterior
@@ -159,7 +159,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.costs)}</div>
+            <div className="text-2xl font-bold">{formatAmount(totals.costs)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingDown className="h-3 w-3 mr-1 text-red-500" />
               -3.2% desde el mes anterior
@@ -173,7 +173,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.profit)}</div>
+            <div className="text-2xl font-bold">{formatAmount(totals.profit)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
               +18.7% desde el mes anterior
@@ -187,7 +187,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.mrr)}</div>
+            <div className="text-2xl font-bold">{formatAmount(totals.mrr)}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
               +8.3% desde el mes anterior
@@ -301,7 +301,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
                 <CardTitle className="text-lg">LTV Promedio</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(totals.ltv)}</div>
+                <div className="text-2xl font-bold">{formatAmount(totals.ltv)}</div>
                 <p className="text-sm text-muted-foreground">
                   Valor de vida del cliente
                 </p>
@@ -313,7 +313,7 @@ const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ className = "" 
                 <CardTitle className="text-lg">CAC Promedio</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(totals.cac)}</div>
+                <div className="text-2xl font-bold">{formatAmount(totals.cac)}</div>
                 <p className="text-sm text-muted-foreground">
                   Costo de adquisición
                 </p>
