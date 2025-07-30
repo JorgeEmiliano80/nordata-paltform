@@ -1,16 +1,14 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, Database, Brain, Shield } from 'lucide-react';
-
 const Landing: React.FC = () => {
-  const { t } = useTranslation();
-
-  return (
-    <div className="min-h-screen bg-background">
+  const {
+    t
+  } = useTranslation();
+  return <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-foreground mb-4">
@@ -21,7 +19,7 @@ const Landing: React.FC = () => {
           </p>
           <div className="flex justify-center gap-4">
             <Button asChild size="lg">
-              <Link to="/register">{t('landing.getStarted')}</Link>
+              
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link to="/login">{t('landing.login')}</Link>
@@ -79,8 +77,6 @@ const Landing: React.FC = () => {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
