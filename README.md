@@ -1,8 +1,6 @@
 
 # NORDATA.AI - Plataforma de Análise de Dados
 
-## 🎯 Visão Geral
-
 NORDATA.AI é uma plataforma completa de análise de dados que permite aos usuários fazer upload de arquivos, processá-los usando inteligência artificial e obter insights automatizados. A plataforma é administrada exclusivamente pela equipe NORDATA, com acesso de clientes apenas por convite.
 
 ## ✨ Funcionalidades
@@ -98,7 +96,7 @@ git clone <repository-url>
 cd nordata-ai
 
 # Instalar dependências
-npm install
+yarn install
 
 # Configurar Supabase
 supabase start
@@ -129,11 +127,6 @@ npm run build
 ```
 
 ## 🔑 Credenciais de Acesso
-
-### Usuário Master (Administrador)
-- **Email**: `iamjorgear80@gmail.com`
-- **Senha**: `Jorge41304254#`
-- **Permissões**: Acesso total ao sistema
 
 ### Clientes
 - Acesso apenas por convite
