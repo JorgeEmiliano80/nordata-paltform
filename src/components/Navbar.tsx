@@ -86,7 +86,7 @@ const Navbar = () => {
                         >
                           <div className="text-sm font-medium leading-none">{t('nav.pipelines')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Gestiona tus flujos de datos
+                            Manage your data pipelines
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -121,7 +121,7 @@ const Navbar = () => {
                         >
                           <div className="text-sm font-medium leading-none">{t('nav.customers')}</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Gestión de clientes y segmentos
+                            Customer management and segments
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -130,36 +130,10 @@ const Navbar = () => {
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger>
+                  <Link to="/chatbot" className={navigationMenuTriggerStyle()}>
                     <Bot className="w-4 h-4 mr-2" />
-                    {t('nav.ai')}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid gap-3 p-4 w-[400px]">
-                      <NavigationMenuLink asChild>
-                        <Link
-                          to="/chatbot"
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                        >
-                          <div className="text-sm font-medium leading-none">{t('nav.chatbot')}</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            {t('chatbot.subtitle')}
-                          </p>
-                        </Link>
-                      </NavigationMenuLink>
-                      <NavigationMenuLink asChild>
-                        <Link
-                          to="/ai-assistant"
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                        >
-                          <div className="text-sm font-medium leading-none">{t('nav.aiAssistant')}</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Asistente de análisis de datos
-                          </p>
-                        </Link>
-                      </NavigationMenuLink>
-                    </div>
-                  </NavigationMenuContent>
+                    {t('nav.chatbot')}
+                  </Link>
                 </NavigationMenuItem>
 
                 {isAdmin() && (
