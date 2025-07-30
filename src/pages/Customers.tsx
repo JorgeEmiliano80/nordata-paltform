@@ -2,7 +2,7 @@
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import CustomersList from '@/components/CustomersList';
-import { AdvancedSegmentationDashboard } from '@/components/customers/AdvancedSegmentationDashboard';
+import AdvancedSegmentationDashboard from '@/components/customers/AdvancedSegmentationDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Customers = () => {

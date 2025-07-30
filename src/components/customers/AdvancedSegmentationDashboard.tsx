@@ -1,309 +1,320 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, TrendingUp, Activity, MapPin, Building, DollarSign, RefreshCw } from 'lucide-react';
 import { useAdvancedCustomerSegmentation } from '@/hooks/useAdvancedCustomerSegmentation';
+import { Loader2, Users, TrendingUp, Filter } from 'lucide-react';
+import { toast } from 'sonner';
 
-// Colores para los gráficos
 const COLORS = {
   age: {
-    young: '#3b82f6',
-    adult: '#10b981', 
-    senior: '#f59e0b',
-    unknown: '#6b7280'
+    young: '#10B981',
+    adult: '#3B82F6', 
+    senior: '#8B5CF6',
+    unknown: '#6B7280'
   },
   location: {
-    'north america': '#ef4444',
-    'south america': '#f97316',
-    'europe': '#eab308',
-    'asia': '#22c55e',
-    'africa': '#06b6d4',
-    'oceania': '#8b5cf6',
-    unknown: '#6b7280'
+    'north america': '#EF4444',
+    'south america': '#F59E0B',
+    'europe': '#10B981',
+    'asia': '#3B82F6',
+    'africa': '#8B5CF6',
+    'oceania': '#EC4899',
+    'unknown': '#6B7280'
   },
   industry: {
-    technology: '#3b82f6',
-    healthcare: '#10b981',
-    finance: '#f59e0b',
-    education: '#ef4444',
-    retail: '#8b5cf6',
-    manufacturing: '#06b6d4',
-    unknown: '#6b7280'
+    technology: '#10B981',
+    healthcare: '#EF4444',
+    finance: '#3B82F6',
+    education: '#F59E0B',
+    retail: '#8B5CF6',
+    manufacturing: '#EC4899',
+    unknown: '#6B7280'
   },
   value: {
-    high_value: '#22c55e',
-    medium_value: '#f59e0b',
-    low_value: '#ef4444'
+    high_value: '#10B981',
+    medium_value: '#F59E0B', 
+    low_value: '#EF4444'
   },
   activity: {
-    active: '#22c55e',
-    moderate: '#f59e0b',
-    inactive: '#ef4444'
+    active: '#10B981',
+    moderate: '#F59E0B',
+    inactive: '#EF4444'
   }
 };
 
-const AdvancedSegmentationDashboard: React.FC = () => {
-  const { segments, loading, calculateSegmentation } = useAdvancedCustomerSegmentation();
-  const [selectedSegment, setSelectedSegment] = useState<string>('age');
+const getColorForSegment = (type: string, segment: string) => {
+  const colorMap = COLORS[type as keyof typeof COLORS];
+  if (colorMap && typeof colorMap === 'object') {
+    return (colorMap as any)[segment] || '#6B7280';
+  }
+  return '#6B7280';
+};
+
+const formatChartData = (distribution: { [key: string]: number }, type: string) => {
+  return Object.entries(distribution).map(([key, value]) => ({
+    name: key.replace('_', ' ').toUpperCase(),
+    value,
+    color: getColorForSegment(type, key)
+  }));
+};
+
+export const AdvancedSegmentationDashboard = () => {
+  const { segments, summary, loading, fetchSegments, calculateSegmentation } = useAdvancedCustomerSegmentation();
 
   useEffect(() => {
-    calculateSegmentation();
+    fetchSegments();
   }, []);
 
-  const handleRecalculate = () => {
-    calculateSegmentation();
-  };
-
-  // Preparar datos para gráficos
-  const getChartData = (segmentType: keyof typeof COLORS) => {
-    const counts: { [key: string]: number } = {};
-    
-    segments.forEach(segment => {
-      const value = segment[`${segmentType}_segment`] || 'unknown';
-      counts[value] = (counts[value] || 0) + 1;
-    });
-
-    return Object.entries(counts).map(([key, value]) => ({
-      name: key.replace('_', ' ').toUpperCase(),
-      value,
-      color: COLORS[segmentType][key as keyof typeof COLORS[typeof segmentType]] || COLORS[segmentType].unknown
-    }));
-  };
-
-  const getSegmentIcon = (type: string) => {
-    switch (type) {
-      case 'age': return <Users className="h-4 w-4" />;
-      case 'location': return <MapPin className="h-4 w-4" />;
-      case 'industry': return <Building className="h-4 w-4" />;
-      case 'value': return <DollarSign className="h-4 w-4" />;
-      case 'activity': return <Activity className="h-4 w-4" />;
-      default: return <Users className="h-4 w-4" />;
-    }
+  const handleCalculateSegmentation = async () => {
+    await calculateSegmentation();
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Cargando segmentación...</span>
       </div>
     );
   }
 
-  const ageData = getChartData('age');
-  const locationData = getChartData('location');
-  const industryData = getChartData('industry');
-  const valueData = getChartData('value');
-  const activityData = getChartData('activity');
+  const totalCustomers = segments.length;
+  const activeSegments = summary ? Object.keys(summary.activity_distribution).length : 0;
 
   return (
     <div className="space-y-6">
-      {/* Header with actions */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Segmentación Avanzada de Clientes</h2>
-          <p className="text-muted-foreground">Análisis multidimensional de tu base de clientes</p>
+          <h2 className="text-3xl font-bold tracking-tight">Segmentación Avanzada de Clientes</h2>
+          <p className="text-muted-foreground">
+            Análisis detallado de clientes por edad, ubicación, industria, valor y actividad
+          </p>
         </div>
-        <Button onClick={handleRecalculate} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Recalcular Segmentos
+        <Button onClick={handleCalculateSegmentation} disabled={loading}>
+          <TrendingUp className="h-4 w-4 mr-2" />
+          Recalcular Segmentación
         </Button>
       </div>
 
-      {/* Resumen general */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Clientes</p>
-                <p className="text-2xl font-bold">{segments.length}</p>
-              </div>
-              <Users className="h-8 w-8 text-muted-foreground" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCustomers}</div>
+            <p className="text-xs text-muted-foreground">
+              Clientes segmentados
+            </p>
           </CardContent>
         </Card>
 
-        {['age', 'location', 'industry', 'value', 'activity'].map((type) => (
-          <Card key={type}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {type === 'age' && 'Segmentos Edad'}
-                    {type === 'location' && 'Ubicaciones'}
-                    {type === 'industry' && 'Industrias'}
-                    {type === 'value' && 'Niveles Valor'}
-                    {type === 'activity' && 'Niveles Actividad'}
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {getChartData(type as keyof typeof COLORS).length}
-                  </p>
-                </div>
-                {getSegmentIcon(type)}
-              </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Segmentos Activos</CardTitle>
+            <Filter className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeSegments}</div>
+            <p className="text-xs text-muted-foreground">
+              Diferentes segmentos
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Alto Valor</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {summary?.value_distribution.high_value || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Clientes de alto valor
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clientes Activos</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {summary?.activity_distribution.active || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Con alta actividad
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      {summary && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Age Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribución por Edad</CardTitle>
+              <CardDescription>Segmentación de clientes por grupos etarios</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={formatChartData(summary.age_distribution, 'age')}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {formatChartData(summary.age_distribution, 'age').map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Gráficos de segmentación */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Segmentación por Edad */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Segmentación por Edad
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={ageData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {ageData.map((entry, index) => (
-                    <Cell key={`age-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          {/* Value Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribución por Valor</CardTitle>
+              <CardDescription>Clientes segmentados por valor económico</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={formatChartData(summary.value_distribution, 'value')}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#8884d8">
+                    {formatChartData(summary.value_distribution, 'value').map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        {/* Segmentación por Ubicación */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Segmentación por Ubicación
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={locationData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#8884d8">
-                  {locationData.map((entry, index) => (
-                    <Cell key={`location-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          {/* Industry Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribución por Industria</CardTitle>
+              <CardDescription>Clientes por sector industrial</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={formatChartData(summary.industry_distribution, 'industry')}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#8884d8">
+                    {formatChartData(summary.industry_distribution, 'industry').map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        {/* Segmentación por Industria */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
-              Segmentación por Industria
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={industryData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {industryData.map((entry, index) => (
-                    <Cell key={`industry-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          {/* Activity Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribución por Actividad</CardTitle>
+              <CardDescription>Nivel de actividad de los clientes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={formatChartData(summary.activity_distribution, 'activity')}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {formatChartData(summary.activity_distribution, 'activity').map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-        {/* Segmentación por Valor */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Segmentación por Valor
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={valueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#8884d8">
-                  {valueData.map((entry, index) => (
-                    <Cell key={`value-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Lista detallada de segmentos */}
+      {/* Detailed Segments List */}
       <Card>
         <CardHeader>
-          <CardTitle>Detalle de Segmentación por Cliente</CardTitle>
-          <CardDescription>
-            Vista completa de todos los segmentos asignados a cada cliente
-          </CardDescription>
+          <CardTitle>Detalles de Segmentación por Cliente</CardTitle>
+          <CardDescription>Lista completa de todos los clientes con sus segmentos asignados</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {segments.slice(0, 10).map((segment) => (
-              <div
-                key={segment.customer_id}
-                className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-primary font-medium">
-                      {segment.customer_id?.toString().slice(-2) || 'C'}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium">Cliente #{segment.customer_id}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Actualizado: {new Date(segment.updated_at).toLocaleDateString()}
-                    </p>
-                  </div>
+            {segments.map((segment) => (
+              <div key={segment.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-semibold">{segment.customer?.name || 'Cliente desconocido'}</h4>
+                  <p className="text-sm text-muted-foreground">{segment.customer?.email}</p>
                 </div>
-                <div className="flex gap-2">
-                  <Badge variant="outline">{segment.age_segment}</Badge>
-                  <Badge variant="outline">{segment.location_segment}</Badge>
-                  <Badge variant="outline">{segment.industry_segment}</Badge>
-                  <Badge variant="outline">{segment.value_segment}</Badge>
-                  <Badge variant="outline">{segment.activity_segment}</Badge>
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="outline" style={{ borderColor: getColorForSegment('age', segment.age_segment) }}>
+                    Edad: {segment.age_segment}
+                  </Badge>
+                  <Badge variant="outline" style={{ borderColor: getColorForSegment('location', segment.location_segment) }}>
+                    Ubicación: {segment.location_segment}
+                  </Badge>
+                  <Badge variant="outline" style={{ borderColor: getColorForSegment('industry', segment.industry_segment) }}>
+                    Industria: {segment.industry_segment}
+                  </Badge>
+                  <Badge variant="outline" style={{ borderColor: getColorForSegment('value', segment.value_segment) }}>
+                    Valor: {segment.value_segment}
+                  </Badge>
+                  <Badge variant="outline" style={{ borderColor: getColorForSegment('activity', segment.activity_segment) }}>
+                    Actividad: {segment.activity_segment}
+                  </Badge>
                 </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {segments.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <p className="text-muted-foreground">No hay datos de segmentación disponibles.</p>
+            <Button onClick={handleCalculateSegmentation} className="mt-4">
+              Calcular Segmentación
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
