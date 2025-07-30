@@ -151,17 +151,69 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_segments_advanced: {
+        Row: {
+          activity_segment: string | null
+          age_segment: string | null
+          created_at: string | null
+          customer_id: string
+          id: string
+          industry_segment: string | null
+          location_segment: string | null
+          updated_at: string | null
+          user_id: string
+          value_segment: string | null
+        }
+        Insert: {
+          activity_segment?: string | null
+          age_segment?: string | null
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          industry_segment?: string | null
+          location_segment?: string | null
+          updated_at?: string | null
+          user_id: string
+          value_segment?: string | null
+        }
+        Update: {
+          activity_segment?: string | null
+          age_segment?: string | null
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          industry_segment?: string | null
+          location_segment?: string | null
+          updated_at?: string | null
+          user_id?: string
+          value_segment?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_segments_advanced_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           age: number | null
+          age_group: string | null
           created_at: string | null
           customer_id: string
+          customer_type: string | null
           dataset_id: string | null
           email: string | null
           gender: string | null
           id: string
+          industry: string | null
           last_purchase_date: string | null
+          location: string | null
           name: string | null
+          registration_date: string | null
           risk_level: string | null
           segment: string | null
           total_orders: number | null
@@ -170,14 +222,19 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          age_group?: string | null
           created_at?: string | null
           customer_id: string
+          customer_type?: string | null
           dataset_id?: string | null
           email?: string | null
           gender?: string | null
           id?: string
+          industry?: string | null
           last_purchase_date?: string | null
+          location?: string | null
           name?: string | null
+          registration_date?: string | null
           risk_level?: string | null
           segment?: string | null
           total_orders?: number | null
@@ -186,14 +243,19 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          age_group?: string | null
           created_at?: string | null
           customer_id?: string
+          customer_type?: string | null
           dataset_id?: string | null
           email?: string | null
           gender?: string | null
           id?: string
+          industry?: string | null
           last_purchase_date?: string | null
+          location?: string | null
           name?: string | null
+          registration_date?: string | null
           risk_level?: string | null
           segment?: string | null
           total_orders?: number | null
@@ -798,6 +860,10 @@ export type Database = {
       activate_invited_user: {
         Args: { user_uuid: string; token: string }
         Returns: boolean
+      }
+      calculate_advanced_customer_segmentation: {
+        Args: { target_user_id?: string }
+        Returns: undefined
       }
       calculate_client_segmentation: {
         Args: { target_user_id?: string }
