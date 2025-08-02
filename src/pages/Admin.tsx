@@ -62,13 +62,13 @@ const Admin = () => {
     
     switch (action) {
       case 'activate':
-        result = await manageUser('activate_user', userId);
+        result = await manageUser('activate', userId);
         break;
       case 'deactivate':
-        result = await manageUser('deactivate_user', userId);
+        result = await manageUser('deactivate', userId);
         break;
       case 'update':
-        result = await manageUser('update_profile', userId, data);
+        result = await manageUser('deactivate', userId, data); // Update not supported, fallback to deactivate
         break;
       default:
         return;

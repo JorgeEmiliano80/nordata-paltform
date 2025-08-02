@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { errorHandler } from '@/lib/errorHandler';
@@ -27,8 +28,12 @@ export interface AdvancedCustomerSegment {
   };
 }
 
+// Export alias for backward compatibility
+export type ClientSegment = CustomerSegment;
+
 export const useCustomerSegmentation = () => {
   const [loading, setLoading] = useState(false);
+  const [clientSegments, setClientSegments] = useState<CustomerSegment[]>([]);
 
   const calculateSegmentation = async (userId?: string) => {
     try {
@@ -143,10 +148,18 @@ export const useCustomerSegmentation = () => {
     }
   };
 
+  const fetchClientSegments = async (userId?: string) => {
+    const data = await getSegmentationData(userId);
+    setClientSegments(data);
+    return data;
+  };
+
   return {
     loading,
+    clientSegments,
     calculateSegmentation,
     getSegmentationData,
-    getAdvancedSegmentation
+    getAdvancedSegmentation,
+    fetchClientSegments
   };
 };

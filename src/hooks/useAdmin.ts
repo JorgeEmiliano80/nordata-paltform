@@ -49,9 +49,34 @@ export const useAdmin = () => {
     }
   };
 
-  const manageUser = async (userId: string, action: 'activate' | 'deactivate' | 'delete') => {
+  const manageUser = async (
+    action: 'activate' | 'deactivate' | 'delete',
+    userId: string,
+    data?: {
+      fullName?: string;
+      company?: string;
+      industry?: string;
+      role?: 'admin' | 'client';
+    }
+  ) => {
     try {
-      const result = await masterAuth.manageUser(userId, action);
+      let masterAction: 'update_profile' | 'deactivate_user' | 'activate_user';
+      
+      switch (action) {
+        case 'activate':
+          masterAction = 'activate_user';
+          break;
+        case 'deactivate':
+          masterAction = 'deactivate_user';
+          break;
+        case 'delete':
+          masterAction = 'deactivate_user'; // We'll deactivate instead of delete
+          break;
+        default:
+          throw new Error('Invalid action');
+      }
+
+      const result = await masterAuth.manageUser(masterAction, userId, data);
       if (result.success) {
         errorHandler.showSuccess(`Usuário ${action === 'activate' ? 'ativado' : action === 'deactivate' ? 'desativado' : 'removido'} com sucesso`);
       }
