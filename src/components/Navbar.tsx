@@ -189,7 +189,7 @@ const Navbar = () => {
                     )}
                   </div>
                 </NavigationMenuContent>
-              )}
+              </NavigationMenuItem>
 
               {/* Chatbot - Available to clients and admins */}
               {canAccessRoute('/chatbot') && (
@@ -205,7 +205,7 @@ const Navbar = () => {
               {isAdmin && canAccessRoute('/admin') && (
                 <NavigationMenuItem>
                   <Link to="/admin" className={navigationMenuTriggerStyle()}>
-                    <Shield className="w-4 w-4 mr-2" />
+                    <Shield className="w-4 h-4 mr-2" />
                     {t('nav.admin')}
                   </Link>
                 </NavigationMenuItem>
