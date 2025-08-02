@@ -65,9 +65,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  const createDefaultProfile = async (user: User) => {
+  const createDefaultProfile = async (user: User, retryCount = 0) => {
     try {
-      console.log('Creating default profile for user:', user.id);
+      console.log(`Creating default profile for user: ${user.id} (attempt ${retryCount + 1})`);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -85,21 +85,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error creating default profile:', error);
+        
+        // Retry once if it's a network error
+        if (retryCount === 0 && (error.message?.includes('network') || error.message?.includes('fetch'))) {
+          console.log('Retrying profile creation...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return await createDefaultProfile(user, retryCount + 1);
+        }
+        
         return null;
       }
 
-      console.log('Default profile created:', data);
+      console.log('Default profile created successfully:', data);
       return data;
     } catch (error) {
       console.error('Error creating default profile:', error);
+      
+      // Retry once on exception
+      if (retryCount === 0) {
+        console.log('Retrying profile creation after exception...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return await createDefaultProfile(user, retryCount + 1);
+      }
+      
       return null;
     }
   };
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, retryCount = 0) => {
     try {
       setProfileLoading(true);
-      console.log('Fetching profile for user:', userId);
+      console.log(`Fetching profile for user: ${userId} (attempt ${retryCount + 1})`);
 
       const { data, error } = await supabase
         .from('profiles')
@@ -119,8 +135,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (newProfile) {
               setProfile(newProfile);
               return;
+            } else {
+              console.error('Failed to create default profile');
+              setProfile(null);
+              return;
             }
           }
+        }
+        
+        // Retry once for network errors
+        if (retryCount === 0 && (error.message?.includes('network') || error.message?.includes('fetch'))) {
+          console.log('Retrying profile fetch...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return await fetchUserProfile(userId, retryCount + 1);
         }
         
         setProfile(null);
@@ -131,6 +158,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
+      
+      // Retry once on exception
+      if (retryCount === 0) {
+        console.log('Retrying profile fetch after exception...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return await fetchUserProfile(userId, retryCount + 1);
+      }
+      
       setProfile(null);
     } finally {
       setProfileLoading(false);
