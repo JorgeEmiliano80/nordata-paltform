@@ -41,7 +41,17 @@ serve(async (req) => {
       throw new Error('ID de archivo requerido');
     }
 
-    console.log(`Procesando archivo: ${fileId} por usuario: ${user.id}`);
+    console.log(`[PROCESS-FILE] Iniciando procesamiento: ${fileId} por usuario: ${user.id}`);
+
+    // Verificar variables de entorno de Databricks
+    const databricksWorkspaceUrl = Deno.env.get('DATABRICKS_WORKSPACE_URL');
+    const databricksToken = Deno.env.get('DATABRICKS_TOKEN');
+    const databricksJobId = Deno.env.get('DATABRICKS_JOB_ID');
+
+    if (!databricksWorkspaceUrl || !databricksToken || !databricksJobId) {
+      console.error('[PROCESS-FILE] Missing Databricks environment variables');
+      throw new Error('Configuración de Databricks no disponible');
+    }
 
     // Obtener información del archivo
     const { data: file, error: fileError } = await supabase
@@ -55,13 +65,26 @@ serve(async (req) => {
       throw new Error('Archivo no encontrado');
     }
 
+    // Validar estado del archivo
+    if (file.status !== 'uploaded') {
+      throw new Error(`Archivo en estado incorrecto: ${file.status}`);
+    }
+
+    console.log(`[PROCESS-FILE] Archivo encontrado: ${file.file_name}`);
+
+    // Actualizar estado a procesando
+    await supabase
+      .from('files')
+      .update({ status: 'processing' })
+      .eq('id', fileId);
+
     // Registrar inicio de procesamiento
     await supabase
       .from('processing_logs')
       .insert({
         file_id: fileId,
         user_id: user.id,
-        operation: 'databricks_process',
+        operation: 'databricks_start',
         status: 'started',
         details: {
           file_name: file.file_name,
@@ -70,119 +93,71 @@ serve(async (req) => {
         }
       });
 
-    // Simular llamada a Databricks (en implementación real, aquí harías la llamada real)
-    const databricksJobId = `job_${Date.now()}`;
-    
-    // Actualizar archivo con job ID
+    // Preparar payload para Databricks
+    const databricksPayload = {
+      job_id: parseInt(databricksJobId),
+      job_parameters: {
+        file_id: fileId,
+        user_id: user.id,
+        file_url: file.storage_url,
+        file_name: file.file_name,
+        file_type: file.file_type,
+        callback_url: `${supabaseUrl}/functions/v1/handle-databricks-callback`
+      }
+    };
+
+    console.log(`[PROCESS-FILE] Enviando job a Databricks: ${databricksWorkspaceUrl}`);
+
+    // Llamada real a Databricks Jobs API
+    const databricksResponse = await fetch(`${databricksWorkspaceUrl}/api/2.1/jobs/run-now`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${databricksToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(databricksPayload)
+    });
+
+    if (!databricksResponse.ok) {
+      const errorData = await databricksResponse.json().catch(() => ({}));
+      throw new Error(`Databricks API Error: ${databricksResponse.status} - ${errorData.message || 'Unknown error'}`);
+    }
+
+    const databricksResult = await databricksResponse.json();
+    const runId = databricksResult.run_id;
+
+    console.log(`[PROCESS-FILE] Job iniciado en Databricks. Run ID: ${runId}`);
+
+    // Actualizar archivo con información real del job
     await supabase
       .from('files')
       .update({
-        databricks_job_id: databricksJobId,
-        status: 'processing'
+        databricks_job_id: `databricks_${runId}`,
+        databricks_run_id: runId
       })
       .eq('id', fileId);
 
-    // Simular procesamiento asíncrono
-    setTimeout(async () => {
-      try {
-        // Simular resultados de procesamiento
-        const mockInsights = [
-          {
-            file_id: fileId,
-            insight_type: 'summary',
-            title: 'Resumen de Datos',
-            description: 'Análisis estadístico básico del archivo',
-            data: {
-              total_rows: Math.floor(Math.random() * 10000) + 1000,
-              columns: Math.floor(Math.random() * 20) + 5,
-              null_values: Math.floor(Math.random() * 100),
-              data_types: ['string', 'number', 'date']
-            },
-            confidence_score: 0.95
-          },
-          {
-            file_id: fileId,
-            insight_type: 'trend',
-            title: 'Tendencias Detectadas',
-            description: 'Patrones identificados en los datos',
-            data: {
-              trends: [
-                { name: 'Incremento mensual', value: 12.5 },
-                { name: 'Estacionalidad', value: 8.3 }
-              ]
-            },
-            confidence_score: 0.78
-          }
-        ];
-
-        // Insertar insights
-        await supabase
-          .from('insights')
-          .insert(mockInsights);
-
-        // Actualizar archivo como completado
-        await supabase
-          .from('files')
-          .update({
-            status: 'done',
-            processed_at: new Date().toISOString(),
-            metadata: {
-              ...file.metadata,
-              processing_completed: true,
-              insights_generated: mockInsights.length
-            }
-          })
-          .eq('id', fileId);
-
-        // Registrar finalización exitosa
-        await supabase
-          .from('processing_logs')
-          .insert({
-            file_id: fileId,
-            user_id: user.id,
-            operation: 'databricks_complete',
-            status: 'success',
-            completed_at: new Date().toISOString(),
-            details: {
-              job_id: databricksJobId,
-              insights_generated: mockInsights.length
-            }
-          });
-
-        console.log(`Procesamiento completado para archivo: ${fileId}`);
-        
-      } catch (error: any) {
-        console.error('Error en procesamiento:', error);
-        
-        // Actualizar archivo con error
-        await supabase
-          .from('files')
-          .update({
-            status: 'error',
-            error_message: error.message || 'Error en procesamiento'
-          })
-          .eq('id', fileId);
-
-        // Registrar error
-        await supabase
-          .from('processing_logs')
-          .insert({
-            file_id: fileId,
-            user_id: user.id,
-            operation: 'databricks_error',
-            status: 'error',
-            completed_at: new Date().toISOString(),
-            error_details: error.message,
-            details: { job_id: databricksJobId }
-          });
-      }
-    }, 5000); // Simular 5 segundos de procesamiento
+    // Registrar job enviado exitosamente
+    await supabase
+      .from('processing_logs')
+      .insert({
+        file_id: fileId,
+        user_id: user.id,
+        operation: 'databricks_submitted',
+        status: 'success',
+        details: {
+          run_id: runId,
+          databricks_job_id: databricksJobId,
+          submitted_at: new Date().toISOString()
+        }
+      });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Archivo enviado a procesamiento',
-        jobId: databricksJobId
+        message: 'Archivo enviado a Databricks para procesamiento',
+        runId: runId,
+        jobId: `databricks_${runId}`
       }),
       {
         status: 200,
@@ -194,7 +169,28 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Error procesando archivo:', error);
+    console.error('[PROCESS-FILE] Error:', error.message);
+
+    // Si tenemos el fileId, marcar como error
+    try {
+      const { fileId } = await req.json().catch(() => ({}));
+      if (fileId) {
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        );
+        
+        await supabase
+          .from('files')
+          .update({
+            status: 'error',
+            error_message: error.message
+          })
+          .eq('id', fileId);
+      }
+    } catch (logError) {
+      console.error('[PROCESS-FILE] Error logging failure:', logError);
+    }
 
     return new Response(
       JSON.stringify({

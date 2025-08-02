@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,9 +8,10 @@ const corsHeaders = {
 };
 
 interface DatabricksCallback {
-  jobId: string;
-  fileId: string;
-  userId: string;
+  run_id: number;
+  job_id: string;
+  file_id: string;
+  user_id: string;
   status: 'completed' | 'failed';
   results?: {
     summary?: any;
@@ -20,9 +22,14 @@ interface DatabricksCallback {
       data: any;
       confidence_score?: number;
     }>;
-    processedFileUrl?: string;
+    processed_data_url?: string;
+    execution_time?: number;
   };
-  error?: string;
+  error?: {
+    error_code: string;
+    error_message: string;
+    stack_trace?: string;
+  };
 }
 
 serve(async (req) => {
@@ -37,12 +44,14 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const callbackData: DatabricksCallback = await req.json();
-    console.log('Callback recebido do Databricks:', callbackData);
+    console.log(`[DATABRICKS-CALLBACK] Recibido callback para run_id: ${callbackData.run_id}`);
 
-    const { jobId, fileId, userId, status, results, error } = callbackData;
+    const { run_id, job_id, file_id, user_id, status, results, error } = callbackData;
 
     if (status === 'completed' && results) {
-      // 1. Atualizar status do arquivo para 'done'
+      console.log(`[DATABRICKS-CALLBACK] Procesamiento completado exitosamente`);
+      
+      // 1. Actualizar estado del archivo a 'done'
       await supabase
         .from('files')
         .update({ 
@@ -50,91 +59,106 @@ serve(async (req) => {
           processed_at: new Date().toISOString(),
           metadata: { 
             databricks_results: results,
-            job_id: jobId
+            run_id: run_id,
+            execution_time: results.execution_time
           }
         })
-        .eq('id', fileId);
+        .eq('id', file_id);
 
-      // 2. Salvar insights se existirem
+      // 2. Guardar insights si existen
       if (results.insights && results.insights.length > 0) {
         const insightsToInsert = results.insights.map(insight => ({
-          file_id: fileId,
+          file_id: file_id,
           insight_type: insight.type,
           title: insight.title,
           description: insight.description,
           data: insight.data,
-          confidence_score: insight.confidence_score
+          confidence_score: insight.confidence_score || null
         }));
 
         await supabase
           .from('insights')
           .insert(insightsToInsert);
+
+        console.log(`[DATABRICKS-CALLBACK] Guardados ${insightsToInsert.length} insights`);
       }
 
-      // 3. Registrar log de conclusão
+      // 3. Registrar log de conclusión exitosa
       await supabase
         .from('processing_logs')
         .insert({
-          file_id: fileId,
-          user_id: userId,
+          file_id: file_id,
+          user_id: user_id,
           operation: 'databricks_complete',
           status: 'success',
           completed_at: new Date().toISOString(),
           details: {
-            job_id: jobId,
+            run_id: run_id,
+            job_id: job_id,
             insights_count: results.insights?.length || 0,
-            processed_file_url: results.processedFileUrl
+            execution_time: results.execution_time,
+            processed_data_url: results.processed_data_url
           }
         });
 
-      // 4. Criar notificação de sucesso
+      // 4. Crear notificación de éxito
       await supabase
         .from('notifications')
         .insert({
-          user_id: userId,
-          title: 'Processamento Concluído',
-          message: `Seu arquivo foi processado com sucesso! ${results.insights?.length || 0} insights foram gerados.`,
+          user_id: user_id,
+          title: 'Procesamiento Completado',
+          message: `Tu archivo fue procesado exitosamente. ${results.insights?.length || 0} insights fueron generados.`,
           type: 'success',
-          related_file_id: fileId
+          related_file_id: file_id
         });
 
     } else {
-      // Processamento falhou
+      // Procesamiento falló
+      console.log(`[DATABRICKS-CALLBACK] Procesamiento falló:`, error);
+      
+      const errorMessage = error?.error_message || 'Error desconocido en Databricks';
+      
       await supabase
         .from('files')
         .update({ 
           status: 'error',
-          error_message: error || 'Erro desconhecido do Databricks'
+          error_message: errorMessage
         })
-        .eq('id', fileId);
+        .eq('id', file_id);
 
       await supabase
         .from('processing_logs')
         .insert({
-          file_id: fileId,
-          user_id: userId,
+          file_id: file_id,
+          user_id: user_id,
           operation: 'databricks_failed',
           status: 'error',
           completed_at: new Date().toISOString(),
-          error_details: error || 'Erro desconhecido',
-          details: { job_id: jobId }
+          error_details: errorMessage,
+          details: { 
+            run_id: run_id,
+            job_id: job_id,
+            error_code: error?.error_code,
+            stack_trace: error?.stack_trace
+          }
         });
 
       await supabase
         .from('notifications')
         .insert({
-          user_id: userId,
-          title: 'Erro no Processamento',
-          message: `Houve um erro ao processar seu arquivo: ${error || 'Erro desconhecido'}`,
+          user_id: user_id,
+          title: 'Error en Procesamiento',
+          message: `Hubo un error al procesar tu archivo: ${errorMessage}`,
           type: 'error',
-          related_file_id: fileId
+          related_file_id: file_id
         });
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Callback processado com sucesso'
+        message: 'Callback procesado correctamente',
+        run_id: run_id
       }),
       {
         status: 200,
@@ -146,7 +170,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Erro ao processar callback do Databricks:', error);
+    console.error('[DATABRICKS-CALLBACK] Error procesando callback:', error.message);
 
     return new Response(
       JSON.stringify({
