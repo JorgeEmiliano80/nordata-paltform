@@ -1,62 +1,13 @@
-import { useState, useEffect } from 'react';
+
+import { useCustomerSegmentation } from './useCustomerSegmentation';
+import { useSalesInsights } from './useSalesInsights';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export interface ClientSegment {
-  id: string;
-  user_id: string;
-  segment: 'vip' | 'premium' | 'regular' | 'new' | 'at_risk' | 'inactive';
-  score: number;
-  revenue_contribution: number;
-  activity_level: number;
-  risk_level: number;
-  last_activity: string;
-  segment_updated_at: string;
-  criteria: any;
-  created_at: string;
-  updated_at: string;
-  user_profile?: {
-    full_name: string;
-    company_name: string;
-    role: string;
-  };
-}
-
-export interface FinancialMetric {
-  id: string;
-  user_id: string;
-  metric_date: string;
-  revenue: number;
-  costs: number;
-  profit: number;
-  mrr: number;
-  ltv: number;
-  cac: number;
-  processing_cost: number;
-  storage_cost: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ClientRecommendation {
-  id: string;
-  user_id: string;
-  recommendation_type: string;
-  title: string;
-  description: string;
-  priority: 'high' | 'medium' | 'low';
-  action_items: string[];
-  potential_impact: string;
-  implementation_effort: string;
-  is_implemented: boolean;
-  created_at: string;
-  expires_at: string;
-  metadata: any;
-  user_profile?: {
-    full_name: string;
-    company_name: string;
-  };
-}
+// Re-export types for backward compatibility
+export type { ClientSegment } from './useCustomerSegmentation';
+export type { FinancialMetric, ClientRecommendation } from './useSalesInsights';
 
 export interface DataFlowMetric {
   id: string;
@@ -88,13 +39,13 @@ export interface BehaviorEvent {
 
 export const useAnalytics = () => {
   const [loading, setLoading] = useState(false);
-  const [clientSegments, setClientSegments] = useState<ClientSegment[]>([]);
-  const [financialMetrics, setFinancialMetrics] = useState<FinancialMetric[]>([]);
-  const [recommendations, setRecommendations] = useState<ClientRecommendation[]>([]);
   const [dataFlowMetrics, setDataFlowMetrics] = useState<DataFlowMetric[]>([]);
   const [behaviorEvents, setBehaviorEvents] = useState<BehaviorEvent[]>([]);
 
-  // Check if current user is admin
+  // Use modular hooks
+  const segmentation = useCustomerSegmentation();
+  const salesInsights = useSalesInsights();
+
   const checkIfAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
@@ -106,159 +57,6 @@ export const useAnalytics = () => {
       .single();
     
     return profile?.role === 'admin';
-  };
-
-  const fetchClientSegments = async () => {
-    try {
-      setLoading(true);
-      const isAdmin = await checkIfAdmin();
-      
-      let query = supabase.from('client_segments').select('*');
-      
-      if (!isAdmin) {
-        // Si no es admin, solo mostrar su propia segmentación
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        query = query.eq('user_id', user.id);
-      }
-      
-      const { data: segments, error: segmentsError } = await query
-        .order('segment_updated_at', { ascending: false });
-
-      if (segmentsError) {
-        console.error('Error fetching client segments:', segmentsError);
-        toast.error('Error al cargar segmentación de clientes');
-        return;
-      }
-
-      if (segments && segments.length > 0) {
-        const userIds = segments.map(s => s.user_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, company_name, role')
-          .in('user_id', userIds);
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        }
-
-        const segmentsWithProfiles = segments.map(segment => ({
-          ...segment,
-          user_profile: profiles?.find(p => p.user_id === segment.user_id)
-        }));
-
-        setClientSegments(segmentsWithProfiles);
-      } else {
-        setClientSegments([]);
-      }
-    } catch (error) {
-      console.error('Error fetching client segments:', error);
-      toast.error('Error al cargar segmentación de clientes');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchFinancialMetrics = async (startDate?: string, endDate?: string) => {
-    try {
-      setLoading(true);
-      const isAdmin = await checkIfAdmin();
-      
-      let query = supabase
-        .from('financial_metrics')
-        .select('*')
-        .order('metric_date', { ascending: false });
-
-      if (!isAdmin) {
-        // Si no es admin, mostrar métricas relacionadas con sus datos
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        query = query.eq('user_id', user.id);
-      }
-
-      if (startDate) {
-        query = query.gte('metric_date', startDate);
-      }
-      if (endDate) {
-        query = query.lte('metric_date', endDate);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching financial metrics:', error);
-        toast.error('Error al cargar métricas financieras');
-        return;
-      }
-
-      setFinancialMetrics(data || []);
-    } catch (error) {
-      console.error('Error fetching financial metrics:', error);
-      toast.error('Error al cargar métricas financieras');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchRecommendations = async () => {
-    try {
-      setLoading(true);
-      const isAdmin = await checkIfAdmin();
-      
-      let query = supabase
-        .from('client_recommendations')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (!isAdmin) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data: recommendations, error: recommendationsError } = await query;
-
-      if (recommendationsError) {
-        console.error('Error fetching recommendations:', recommendationsError);
-        toast.error('Error al cargar recomendaciones');
-        return;
-      }
-
-      if (recommendations && recommendations.length > 0) {
-        const userIds = recommendations.map(r => r.user_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, company_name')
-          .in('user_id', userIds);
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        }
-
-        const recommendationsWithProfiles = recommendations.map(rec => ({
-          ...rec,
-          action_items: Array.isArray(rec.action_items) ? 
-            rec.action_items.filter((item: any) => typeof item === 'string') : 
-            typeof rec.action_items === 'string' ? [rec.action_items] : [],
-          priority: rec.priority || 'medium',
-          potential_impact: rec.potential_impact || '',
-          implementation_effort: rec.implementation_effort || '',
-          is_implemented: rec.is_implemented || false,
-          expires_at: rec.expires_at || '',
-          metadata: rec.metadata || {},
-          user_profile: profiles?.find(p => p.user_id === rec.user_id)
-        }));
-
-        setRecommendations(recommendationsWithProfiles);
-      } else {
-        setRecommendations([]);
-      }
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      toast.error('Error al cargar recomendaciones');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const fetchDataFlowMetrics = async (hours: number = 24) => {
@@ -333,50 +131,6 @@ export const useAnalytics = () => {
     }
   };
 
-  const calculateSegmentation = async (userId?: string) => {
-    try {
-      setLoading(true);
-      const { error } = await supabase.rpc('calculate_client_segmentation', {
-        target_user_id: userId || null
-      });
-
-      if (error) {
-        console.error('Error calculating segmentation:', error);
-        toast.error('Error al calcular segmentación');
-        return;
-      }
-
-      toast.success('Segmentación calculada exitosamente');
-      await fetchClientSegments();
-    } catch (error) {
-      console.error('Error calculating segmentation:', error);
-      toast.error('Error al calcular segmentación');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateRecommendations = async () => {
-    try {
-      setLoading(true);
-      const { error } = await supabase.rpc('generate_client_recommendations');
-
-      if (error) {
-        console.error('Error generating recommendations:', error);
-        toast.error('Error al generar recomendaciones');
-        return;
-      }
-
-      toast.success('Recomendaciones generadas exitosamente');
-      await fetchRecommendations();
-    } catch (error) {
-      console.error('Error generating recommendations:', error);
-      toast.error('Error al generar recomendaciones');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const generateDataFlowMetrics = async () => {
     try {
       setLoading(true);
@@ -415,7 +169,7 @@ export const useAnalytics = () => {
           file_id: fileId,
           session_id: sessionId,
           duration_seconds: duration || 0,
-          ip_address: '127.0.0.1', // Sería poblado server-side en producción
+          ip_address: '127.0.0.1',
           user_agent: navigator.userAgent
         });
 
@@ -427,43 +181,25 @@ export const useAnalytics = () => {
     }
   };
 
-  const updateRecommendationStatus = async (recommendationId: string, isImplemented: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('client_recommendations')
-        .update({ is_implemented: isImplemented })
-        .eq('id', recommendationId);
-
-      if (error) {
-        console.error('Error updating recommendation:', error);
-        toast.error('Error al actualizar recomendación');
-        return;
-      }
-
-      toast.success('Recomendación actualizada');
-      await fetchRecommendations();
-    } catch (error) {
-      console.error('Error updating recommendation:', error);
-      toast.error('Error al actualizar recomendación');
-    }
-  };
-
   return {
-    loading,
-    clientSegments,
-    financialMetrics,
-    recommendations,
+    loading: loading || segmentation.loading || salesInsights.loading,
+    // Customer Segmentation
+    clientSegments: segmentation.clientSegments,
+    fetchClientSegments: segmentation.fetchClientSegments,
+    calculateSegmentation: segmentation.calculateSegmentation,
+    // Sales Insights
+    financialMetrics: salesInsights.financialMetrics,
+    recommendations: salesInsights.recommendations,
+    fetchFinancialMetrics: salesInsights.fetchFinancialMetrics,
+    fetchRecommendations: salesInsights.fetchRecommendations,
+    generateRecommendations: salesInsights.generateRecommendations,
+    updateRecommendationStatus: salesInsights.updateRecommendationStatus,
+    // Data Flow & Behavior
     dataFlowMetrics,
     behaviorEvents,
-    fetchClientSegments,
-    fetchFinancialMetrics,
-    fetchRecommendations,
     fetchDataFlowMetrics,
     fetchBehaviorEvents,
-    calculateSegmentation,
-    generateRecommendations,
     generateDataFlowMetrics,
-    trackBehaviorEvent,
-    updateRecommendationStatus
+    trackBehaviorEvent
   };
 };

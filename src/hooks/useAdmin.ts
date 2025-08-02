@@ -1,228 +1,29 @@
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
-export interface AdminUser {
-  user_id: string;
-  full_name: string;
-  company_name: string;
-  role: 'admin' | 'client';
-  user_created_at: string;
-  is_active: boolean;
-  total_files: number;
-  processed_files: number;
-  failed_files: number;
-  last_upload: string | null;
-  total_chat_messages: number;
-}
+import { useInvites } from './useInvites';
+import { useMasterAuth } from './useMasterAuth';
 
-export interface PendingInvitation {
-  id: string;
-  email: string;
-  full_name: string;
-  company_name: string | null;
-  industry: string | null;
-  invitation_token: string;
-  invited_by: string;
-  invited_at: string;
-  expires_at: string;
-  used_at: string | null;
-}
+// Re-export types for backward compatibility
+export type { PendingInvitation } from './useInvites';
+export type { AdminUser } from './useMasterAuth';
 
 export const useAdmin = () => {
-  const [loading, setLoading] = useState(false);
+  const invites = useInvites();
+  const masterAuth = useMasterAuth();
 
   const fetchAdminData = async () => {
-    try {
-      setLoading(true);
-      
-      const { data: users, error: usersError } = await supabase
-        .rpc('get_admin_dashboard');
-
-      if (usersError) {
-        console.error('Error from RPC:', usersError);
-        toast.error('Error al cargar datos del panel admin');
-        return { users: [], invitations: [] };
-      }
-
-      const { data: invitations, error: invitationsError } = await supabase
-        .from('pending_invitations')
-        .select('*')
-        .order('invited_at', { ascending: false });
-
-      if (invitationsError) {
-        console.error('Error fetching invitations:', invitationsError);
-        toast.error('Error al cargar invitaciones');
-        return { users: users || [], invitations: [] };
-      }
-
-      return {
-        users: users || [],
-        invitations: invitations || []
-      };
-    } catch (error: any) {
-      console.error('Error fetching admin data:', error);
-      toast.error('Error al cargar datos del panel admin');
-      return { users: [], invitations: [] };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createInvitation = async (
-    email: string,
-    fullName: string,
-    companyName?: string,
-    industry?: string
-  ) => {
-    try {
-      setLoading(true);
-
-      // Obtener el token de sesión actual
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        throw new Error('No hay sesión activa');
-      }
-
-      const { data, error } = await supabase.functions.invoke('admin-invite-user', {
-        body: {
-          email,
-          fullName,
-          companyName,
-          industry
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
-
-      if (error) {
-        console.error('Error calling function:', error);
-        throw new Error(error.message || 'Error al crear invitación');
-      }
-
-      if (data && data.success) {
-        // Mostrar mensajes diferenciados según el tipo de envío
-        if (data.emailSent) {
-          toast.success('¡Invitación enviada por email exitosamente!', {
-            description: `Se envió un email automático a ${email}`
-          });
-          toast.info('Enlace de respaldo disponible', {
-            description: 'También puedes copiar el enlace para compartir manualmente'
-          });
-        } else {
-          toast.warning('Email no enviado - Usa el enlace manual', {
-            description: data.emailError || 'Problema con el envío automático'
-          });
-          toast.info('Invitación creada exitosamente', {
-            description: 'Comparte el enlace con el usuario'
-          });
-        }
-
-        return {
-          success: true,
-          invitationToken: data.invitationToken,
-          inviteUrl: data.inviteUrl,
-          emailSent: data.emailSent,
-          emailError: data.emailError,
-          instructions: data.instructions
-        };
-      } else {
-        throw new Error(data?.error || 'Error al crear invitación');
-      }
-    } catch (error: any) {
-      console.error('Error creating invitation:', error);
-      toast.error('Error al crear invitación', {
-        description: error.message || 'Error desconocido'
-      });
-      return { 
-        success: false, 
-        emailSent: false,
-        error: error.message 
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const manageUser = async (
-    action: 'update_profile' | 'deactivate_user' | 'activate_user',
-    userId: string,
-    data?: {
-      fullName?: string;
-      company?: string;
-      industry?: string;
-      role?: 'admin' | 'client';
-    }
-  ) => {
-    try {
-      setLoading(true);
-
-      if (action === 'update_profile') {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            full_name: data?.fullName,
-            company_name: data?.company,
-            industry: data?.industry,
-            role: data?.role,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-
-        if (error) {
-          throw error;
-        }
-
-        toast.success('Perfil actualizado exitosamente');
-        return { success: true };
-      } else if (action === 'deactivate_user') {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            is_active: false,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-
-        if (error) {
-          throw error;
-        }
-
-        toast.success('Usuario desactivado');
-        return { success: true };
-      } else if (action === 'activate_user') {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            is_active: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-
-        if (error) {
-          throw error;
-        }
-
-        toast.success('Usuario activado');
-        return { success: true };
-      }
-
-      return { success: false };
-    } catch (error: any) {
-      console.error('Error managing user:', error);
-      toast.error(error.message || 'Error al gestionar usuario');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
+    const adminData = await masterAuth.fetchAdminData();
+    const invitations = await invites.fetchInvitations();
+    
+    return {
+      users: adminData.users,
+      invitations
+    };
   };
 
   return {
-    loading,
+    loading: invites.loading || masterAuth.loading,
     fetchAdminData,
-    createInvitation,
-    manageUser
+    createInvitation: invites.createInvitation,
+    manageUser: masterAuth.manageUser
   };
 };
