@@ -27,6 +27,8 @@ export interface ProcessingResult {
   error?: string;
 }
 
+type FileStatus = 'uploaded' | 'processing' | 'done' | 'error';
+
 export class FileProcessingService {
   /**
    * Inicia el procesamiento de un archivo llamando a la Edge Function
@@ -103,7 +105,7 @@ export class FileProcessingService {
       const { error: updateError } = await supabase
         .from('files')
         .update({ 
-          status: 'error',
+          status: 'error' as FileStatus,
           error_message: 'Job cancelado por usuario'
         })
         .eq('id', fileId);
@@ -151,7 +153,7 @@ export class FileProcessingService {
   /**
    * Obtiene archivos del usuario con estado específico
    */
-  async getFilesByStatus(userId: string, status: string): Promise<FileRecord[]> {
+  async getFilesByStatus(userId: string, status: FileStatus): Promise<FileRecord[]> {
     try {
       const { data, error } = await supabase
         .from('files')
