@@ -28,7 +28,7 @@ export interface AdvancedCustomerSegment {
   };
 }
 
-// Raw database segment interface for mapping
+// Raw database segment interface for mapping - updated to match actual Supabase response
 interface RawClientSegment {
   id: string;
   user_id: string;
@@ -38,10 +38,14 @@ interface RawClientSegment {
   risk_level: number;
   score: number;
   segment_updated_at: string;
+  created_at: string;
+  updated_at: string;
+  last_activity: string;
+  criteria: any;
   profiles: {
     full_name: string;
     company_name: string;
-  };
+  } | null;
 }
 
 // Export alias for backward compatibility
@@ -52,14 +56,17 @@ export const useCustomerSegmentation = () => {
   const [clientSegments, setClientSegments] = useState<CustomerSegment[]>([]);
 
   // Helper function to map raw database data to CustomerSegment interface
-  const mapRawSegmentToCustomerSegment = (rawSegment: RawClientSegment): CustomerSegment => {
+  const mapRawSegmentToCustomerSegment = (rawSegment: any): CustomerSegment => {
     return {
       segment_id: rawSegment.id,
       user_id: rawSegment.user_id,
       segment_name: rawSegment.segment,
       segment_description: `Segmento ${rawSegment.segment} com score ${rawSegment.score}`,
       segment_updated_at: rawSegment.segment_updated_at,
-      profiles: rawSegment.profiles
+      profiles: {
+        full_name: rawSegment.profiles?.full_name || 'N/A',
+        company_name: rawSegment.profiles?.company_name || 'N/A'
+      }
     };
   };
 
