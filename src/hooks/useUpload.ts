@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { FileValidator, ValidationResult, CUSTOMER_DATA_CONFIG } from '@/validators/fileValidator';
 
 export interface FileRecord {
   id: string;
@@ -22,10 +22,12 @@ export interface FileRecord {
 
 export const useUpload = () => {
   const [uploading, setUploading] = useState(false);
+  const [validating, setValidating] = useState(false);
 
   const uploadFile = async (file: File) => {
     try {
       setUploading(true);
+      setValidating(true);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -39,6 +41,54 @@ export const useUpload = () => {
         toast.error('Tipo de archivo no válido. Solo se permiten CSV, JSON y XLSX');
         return { success: false };
       }
+
+      console.log('🔍 Iniciando validación profunda del archivo...');
+      
+      // Realizar validación profunda del archivo
+      const validator = new FileValidator(CUSTOMER_DATA_CONFIG);
+      const validationResult: ValidationResult = await validator.validateFile(file);
+      
+      setValidating(false);
+
+      if (!validationResult.isValid) {
+        console.error('❌ Archivo no válido:', validationResult.errors);
+        
+        // Mostrar errores específicos al usuario
+        const errorMessages = validationResult.errors
+          .slice(0, 3) // Mostrar máximo 3 errores para no saturar
+          .map(error => error.message)
+          .join('\n');
+        
+        toast.error(`Archivo no válido:\n${errorMessages}`);
+        
+        // Si hay más errores, mostrar un resumen
+        if (validationResult.errors.length > 3) {
+          toast.error(`... y ${validationResult.errors.length - 3} errores adicionales`);
+        }
+        
+        return { 
+          success: false, 
+          validationErrors: validationResult.errors,
+          validationStats: validationResult.stats 
+        };
+      }
+
+      // Mostrar advertencias si las hay
+      if (validationResult.warnings && validationResult.warnings.length > 0) {
+        validationResult.warnings.forEach(warning => {
+          toast.warning(warning);
+        });
+      }
+
+      // Mostrar estadísticas de validación
+      if (validationResult.stats) {
+        console.log('📊 Estadísticas del archivo:', validationResult.stats);
+        toast.success(
+          `Archivo validado: ${validationResult.stats.totalRows} filas, ${validationResult.stats.totalColumns} columnas`
+        );
+      }
+
+      console.log('✅ Archivo validado correctamente, procediendo con la subida...');
 
       // Subir archivo a Supabase Storage
       const fileName = `${Date.now()}-${file.name}`;
@@ -69,7 +119,9 @@ export const useUpload = () => {
           status: 'uploaded',
           metadata: {
             original_name: file.name,
-            upload_timestamp: new Date().toISOString()
+            upload_timestamp: new Date().toISOString(),
+            validation_stats: validationResult.stats,
+            validation_warnings: validationResult.warnings
           }
         })
         .select()
@@ -81,19 +133,25 @@ export const useUpload = () => {
         return { success: false };
       }
 
-      toast.success('Archivo subido exitosamente');
-      return { success: true, fileId: fileRecord.id };
+      toast.success('Archivo subido y validado exitosamente');
+      return { 
+        success: true, 
+        fileId: fileRecord.id,
+        validationResult
+      };
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error('Error al subir archivo');
       return { success: false };
     } finally {
       setUploading(false);
+      setValidating(false);
     }
   };
 
   return {
     uploading,
+    validating,
     uploadFile
   };
 };

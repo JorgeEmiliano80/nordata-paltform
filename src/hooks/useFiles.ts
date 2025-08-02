@@ -9,9 +9,9 @@ export { type FileRecord } from './useUpload';
 
 export const useFiles = () => {
   const [files, setFiles] = useState<FileRecord[]>([]);
-  const { uploading, uploadFile } = useUpload();
+  const { uploading, validating: uploadValidating, uploadFile } = useUpload();
   const { loading, deleteFile, getFileInsights, fetchFiles } = useStorage();
-  const { processing, processFile } = useFileProcessing();
+  const { processing, validating: processValidating, processFile } = useFileProcessing();
 
   const refetchFiles = async () => {
     const filesList = await fetchFiles();
@@ -50,6 +50,7 @@ export const useFiles = () => {
     files,
     loading: loading || uploading || processing,
     uploading,
+    validating: uploadValidating || processValidating,
     uploadFile: handleUploadFile,
     processFile: handleProcessFile,
     deleteFile: handleDeleteFile,
