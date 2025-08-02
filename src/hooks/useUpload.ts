@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { FileValidator, ValidationResult, CUSTOMER_DATA_CONFIG } from '@/validators/fileValidator';
@@ -20,9 +21,71 @@ export interface FileRecord {
   metadata: any;
 }
 
+// Configuración estricta de validación
+const ALLOWED_MIME_TYPES = [
+  'text/csv',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel', 
+  'application/json'
+];
+
+const ALLOWED_EXTENSIONS = ['.csv', '.xlsx', '.xls', '.json'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export const useUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [validating, setValidating] = useState(false);
+
+  // Validación estricta previa al upload
+  const validateFileStrict = (file: File): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    console.log('🔍 Validación estricta:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified
+    });
+    
+    // Validar tamaño
+    if (file.size > MAX_FILE_SIZE) {
+      errors.push(`Archivo excede el tamaño máximo de ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+    }
+    
+    // Validar tipo MIME
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      errors.push(`Tipo de archivo no válido: ${file.type}`);
+    }
+    
+    // Validar extensión
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+      errors.push(`Extensión de archivo no válida: ${fileExtension}`);
+    }
+    
+    // Validar que el archivo no esté vacío
+    if (file.size === 0) {
+      errors.push('El archivo está vacío');
+    }
+    
+    // Validar correspondencia MIME type - extensión
+    const mimeExtensionMap: { [key: string]: string[] } = {
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/json': ['.json']
+    };
+    
+    const allowedExtensions = mimeExtensionMap[file.type];
+    if (allowedExtensions && !allowedExtensions.includes(fileExtension)) {
+      errors.push(`El tipo de archivo no coincide con su extensión`);
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
 
   const uploadFile = async (file: File) => {
     try {
@@ -38,37 +101,50 @@ export const useUpload = () => {
         return { success: false };
       }
 
-      // Validar tipo de archivo
-      const allowedTypes = ['text/csv', 'application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
-      if (!allowedTypes.includes(file.type)) {
+      console.log('🔍 Iniciando validación estricta del archivo...');
+      
+      // VALIDACIÓN ESTRICTA PREVIA
+      const strictValidation = validateFileStrict(file);
+      if (!strictValidation.isValid) {
+        console.error('❌ Validación estricta falló:', strictValidation.errors);
+        
         errorHandler.handleError(
-          new Error('Tipo de archivo no válido'), 
-          { 
-            category: 'validation', 
-            operation: 'upload',
+          new Error(`Archivo no válido: ${strictValidation.errors.join('; ')}`),
+          {
+            category: 'validation',
+            operation: 'strict_validation',
             fileName: file.name,
-            userId: user.id
+            userId: user.id,
+            technicalDetails: {
+              fileType: file.type,
+              fileSize: file.size,
+              errors: strictValidation.errors
+            }
           }
         );
-        return { success: false };
+        
+        return { 
+          success: false, 
+          validationErrors: strictValidation.errors.map(error => ({ message: error }))
+        };
       }
 
-      console.log('🔍 Iniciando validação profunda do arquivo...');
-      
-      // Realizar validação profunda do arquivo
+      console.log('✅ Validación estricta exitosa, procediendo con validación profunda...');
+
+      // Realizar validación profunda del contenido
       const validator = new FileValidator(CUSTOMER_DATA_CONFIG);
       const validationResult: ValidationResult = await validator.validateFile(file);
       
       setValidating(false);
 
       if (!validationResult.isValid) {
-        console.error('❌ Arquivo não válido:', validationResult.errors);
+        console.error('❌ Validación de contenido falló:', validationResult.errors);
         
         const processedError = errorHandler.handleValidationError(
           validationResult.errors, 
           {
             category: 'validation',
-            operation: 'file_validation',
+            operation: 'content_validation',
             fileName: file.name,
             userId: user.id
           }
@@ -88,7 +164,7 @@ export const useUpload = () => {
         });
       }
 
-      // Mostrar estadísticas de validação
+      // Mostrar estadísticas de validación
       if (validationResult.stats) {
         console.log('📊 Estatísticas do arquivo:', validationResult.stats);
         errorHandler.showSuccess(
@@ -98,7 +174,7 @@ export const useUpload = () => {
 
       console.log('✅ Arquivo validado corretamente, procedendo com upload...');
 
-      // Subir arquivo a Supabase Storage
+      // Subir archivo a Supabase Storage
       const fileName = `${Date.now()}-${file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('data-files')
@@ -120,7 +196,7 @@ export const useUpload = () => {
         .from('data-files')
         .getPublicUrl(fileName);
 
-      // Guardar información del archivo en la base de datos
+      // Guardar información del archivo en la base de datos con metadata de validación
       const { data: fileRecord, error: dbError } = await supabase
         .from('files')
         .insert({
@@ -134,7 +210,15 @@ export const useUpload = () => {
             original_name: file.name,
             upload_timestamp: new Date().toISOString(),
             validation_stats: validationResult.stats,
-            validation_warnings: validationResult.warnings
+            validation_warnings: validationResult.warnings,
+            strict_validation_passed: true,
+            content_validation_passed: true,
+            file_hash: await generateFileHash(file),
+            browser_validation: {
+              mime_type: file.type,
+              file_extension: '.' + file.name.split('.').pop()?.toLowerCase(),
+              last_modified: new Date(file.lastModified).toISOString()
+            }
           }
         })
         .select()
@@ -168,6 +252,19 @@ export const useUpload = () => {
     } finally {
       setUploading(false);
       setValidating(false);
+    }
+  };
+
+  // Generar hash simple del archivo para verificación de integridad
+  const generateFileHash = async (file: File): Promise<string> => {
+    try {
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+      console.warn('Error generating file hash:', error);
+      return 'hash_unavailable';
     }
   };
 
