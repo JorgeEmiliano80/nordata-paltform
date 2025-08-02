@@ -16,7 +16,8 @@
     "close": "Close",
     "open": "Open",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "retry": "Retry"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -41,6 +42,10 @@
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm Password",
+    "emailPlaceholder": "user@company.com",
+    "passwordPlaceholder": "••••••••",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "loginSuccess": "Login successful",
     "loginError": "Invalid credentials",
     "fillAllFields": "Please fill all fields",
@@ -59,7 +64,12 @@
     "inviteRegistration": "Registration by Invitation",
     "completeRegistration": "Complete your registration using the invitation link",
     "invalidInviteToken": "Invalid invitation token",
-    "completeRegister": "Complete Registration"
+    "completeRegister": "Complete Registration",
+    "verifyingAuth": "Verifying authentication...",
+    "loadingProfile": "Loading profile...",
+    "profileLoadError": "Error loading profile",
+    "profileLoadErrorDesc": "Could not load or create user profile. This may be a temporary issue.",
+    "backToLogin": "Back to Login"
   },
   "dashboard": {
     "title": "Dashboard",

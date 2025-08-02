@@ -23,16 +23,20 @@ i18n
         translation: ptTranslations
       }
     },
-    fallbackLng: 'en',
-    lng: 'en', // Set English as default
+    fallbackLng: 'pt',
+    lng: 'pt', // Set Portuguese as default
     debug: false,
     interpolation: {
       escapeValue: false,
     },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
+      lookupLocalStorage: 'preferredLanguage',
       caches: ['localStorage'],
+      checkWhitelist: true,
     },
+    whitelist: ['en', 'es', 'pt'],
+    load: 'languageOnly',
   });
 
 export default i18n;

@@ -1,6 +1,7 @@
 
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -10,6 +11,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, profile, loading, profileLoading, signOut } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   if (loading) {
@@ -17,7 +19,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Verificando autenticación...</p>
+          <p className="text-muted-foreground">{t('auth.verifyingAuth')}</p>
         </div>
       </div>
     );
@@ -27,19 +29,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // If user exists but profile is still loading, show loading state
   if (profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Cargando perfil...</p>
+          <p className="text-muted-foreground">{t('auth.loadingProfile')}</p>
         </div>
       </div>
     );
   }
 
-  // If profile failed to load after attempts, show error and redirect options
   if (!profile && !profileLoading) {
     console.error('Failed to load or create user profile');
     
@@ -49,7 +49,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         navigate('/login', { replace: true });
       } catch (error) {
         console.error('Error signing out:', error);
-        // Force navigation even if signOut fails
         navigate('/login', { replace: true });
       }
     };
@@ -61,9 +60,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
             <Loader2 className="h-8 w-8 text-destructive" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-destructive">Error al cargar el perfil</h2>
+            <h2 className="text-lg font-semibold text-destructive">{t('auth.profileLoadError')}</h2>
             <p className="text-muted-foreground text-sm">
-              No se pudo cargar o crear el perfil de usuario. Esto puede ser un problema temporal.
+              {t('auth.profileLoadErrorDesc')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
@@ -72,14 +71,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
               onClick={() => window.location.reload()}
               className="min-w-[120px]"
             >
-              Reintentar
+              {t('common.retry')}
             </Button>
             <Button 
               variant="default"
               onClick={handleBackToLogin}
               className="min-w-[120px]"
             >
-              Volver al login
+              {t('auth.backToLogin')}
             </Button>
           </div>
         </div>

@@ -8,42 +8,52 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Globe } from 'lucide-react';
+import { Globe, Check } from 'lucide-react';
 
 const LanguageSelector: React.FC = () => {
   const { i18n, t } = useTranslation();
 
   const languages = [
-    { code: 'en', name: t('languages.en') },
-    { code: 'es', name: t('languages.es') },
-    { code: 'pt', name: t('languages.pt') },
+    { code: 'pt', name: t('languages.pt'), flag: '🇧🇷', nativeName: 'Português' },
+    { code: 'es', name: t('languages.es'), flag: '🇪🇸', nativeName: 'Español' },
+    { code: 'en', name: t('languages.en'), flag: '🇺🇸', nativeName: 'English' },
   ];
 
   const handleLanguageChange = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
+    localStorage.setItem('preferredLanguage', languageCode);
   };
 
   const getCurrentLanguage = () => {
     const currentLang = languages.find(lang => lang.code === i18n.language);
-    return currentLang ? currentLang.name : languages[0].name;
+    return currentLang || languages[0];
   };
+
+  const currentLang = getCurrentLanguage();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Globe className="h-4 w-4" />
-          {getCurrentLanguage()}
+        <Button variant="outline" size="sm" className="gap-2 min-w-[120px]">
+          <span className="text-base">{currentLang.flag}</span>
+          <span className="hidden sm:inline">{currentLang.nativeName}</span>
+          <Globe className="h-4 w-4 sm:hidden" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent align="end" className="min-w-[160px]">
         {languages.map((language) => (
           <DropdownMenuItem
             key={language.code}
             onClick={() => handleLanguageChange(language.code)}
-            className={i18n.language === language.code ? 'bg-accent' : ''}
+            className="flex items-center justify-between cursor-pointer"
           >
-            {language.name}
+            <div className="flex items-center gap-2">
+              <span className="text-base">{language.flag}</span>
+              <span>{language.nativeName}</span>
+            </div>
+            {i18n.language === language.code && (
+              <Check className="h-4 w-4 text-primary" />
+            )}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
