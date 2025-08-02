@@ -1,8 +1,8 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { FileValidator, ValidationResult } from '@/validators/fileValidator';
+import { errorHandler } from '@/lib/errorHandler';
 
 export const useFileProcessing = () => {
   const [processing, setProcessing] = useState(false);
@@ -21,12 +21,19 @@ export const useFileProcessing = () => {
         .single();
 
       if (fileError || !file) {
-        toast.error('Archivo no encontrado');
+        errorHandler.handleError(
+          new Error('Arquivo não encontrado'),
+          {
+            category: 'supabase',
+            operation: 'fetch_file',
+            fileId
+          }
+        );
         return { success: false };
       }
 
       // Validación adicional antes del procesamiento
-      console.log('🔍 Realizando validación previa al procesamiento...');
+      console.log('🔍 Realizando validação prévia ao processamento...');
       
       // Obtener el archivo desde storage para validación
       const { data: fileBlob } = await supabase.storage
@@ -42,31 +49,35 @@ export const useFileProcessing = () => {
         setValidating(false);
 
         if (!validationResult.isValid) {
-          console.error('❌ Archivo no válido para procesamiento:', validationResult.errors);
+          console.error('❌ Arquivo não válido para processamento:', validationResult.errors);
           
-          const errorMessage = validationResult.errors
-            .slice(0, 2)
-            .map(error => error.message)
-            .join('; ');
-
-          toast.error(`No se puede procesar: ${errorMessage}`);
+          errorHandler.handleValidationError(
+            validationResult.errors,
+            {
+              category: 'validation',
+              operation: 'pre_processing_validation',
+              fileId,
+              fileName: file.file_name,
+              userId: file.user_id
+            }
+          );
           
           // Actualizar estado a error
           await supabase
             .from('files')
             .update({ 
               status: 'error',
-              error_message: `Validación fallida: ${errorMessage}`
+              error_message: `Validação falhou: ${validationResult.errors.slice(0, 2).map(e => e.message).join('; ')}`
             })
             .eq('id', fileId);
 
           return { success: false, validationErrors: validationResult.errors };
         }
 
-        console.log('✅ Archivo validado para procesamiento');
+        console.log('✅ Arquivo validado para processamento');
       } else {
         setValidating(false);
-        console.warn('⚠️ No se pudo descargar el archivo para validación, continuando...');
+        console.warn('⚠️ Não foi possível baixar o arquivo para validação, continuando...');
       }
       
       // Actualizar estado a processing
@@ -77,7 +88,13 @@ export const useFileProcessing = () => {
 
       if (updateError) {
         console.error('Error updating file status:', updateError);
-        toast.error('Error al iniciar procesamiento');
+        errorHandler.handleError(updateError, {
+          category: 'supabase',
+          operation: 'update_file_status',
+          fileId,
+          fileName: file.file_name,
+          userId: file.user_id
+        });
         return { success: false };
       }
 
@@ -90,7 +107,7 @@ export const useFileProcessing = () => {
           operation: 'pre_processing_validation',
           status: 'success',
           details: {
-            message: 'Archivo validado correctamente antes del procesamiento',
+            message: 'Arquivo validado corretamente antes do processamento',
             timestamp: new Date().toISOString()
           }
         });
@@ -102,7 +119,13 @@ export const useFileProcessing = () => {
 
       if (error) {
         console.error('Error processing file:', error);
-        toast.error('Error al procesar archivo');
+        errorHandler.handleError(error, {
+          category: 'databricks',
+          operation: 'process_file',
+          fileId,
+          fileName: file.file_name,
+          userId: file.user_id
+        });
         
         // Actualizar estado a error
         await supabase
@@ -116,11 +139,15 @@ export const useFileProcessing = () => {
         return { success: false };
       }
 
-      toast.success('Archivo enviado a procesamiento');
+      errorHandler.showSuccess('Arquivo enviado para processamento');
       return { success: true };
     } catch (error) {
       console.error('Error processing file:', error);
-      toast.error('Error al procesar archivo');
+      errorHandler.handleError(error, {
+        category: 'file_processing',
+        operation: 'process_file',
+        fileId
+      });
       return { success: false };
     } finally {
       setProcessing(false);
@@ -136,12 +163,22 @@ export const useFileProcessing = () => {
 
       if (error) {
         console.error('Error checking job status:', error);
+        errorHandler.handleError(error, {
+          category: 'databricks',
+          operation: 'check_job_status',
+          technicalDetails: { runId }
+        });
         return null;
       }
 
       return data;
     } catch (error) {
       console.error('Error checking job status:', error);
+      errorHandler.handleError(error, {
+        category: 'databricks',
+        operation: 'check_job_status',
+        technicalDetails: { runId }
+      });
       return null;
     }
   };

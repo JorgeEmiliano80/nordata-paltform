@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { FileValidator, ValidationResult, CUSTOMER_DATA_CONFIG } from '@/validators/fileValidator';
+import { errorHandler } from '@/lib/errorHandler';
 
 export interface FileRecord {
   id: string;
@@ -31,40 +31,48 @@ export const useUpload = () => {
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Usuario no autenticado');
+        errorHandler.handleError(
+          new Error('Usuario no autenticado'), 
+          { category: 'authentication', operation: 'upload' }
+        );
         return { success: false };
       }
 
       // Validar tipo de archivo
       const allowedTypes = ['text/csv', 'application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
       if (!allowedTypes.includes(file.type)) {
-        toast.error('Tipo de archivo no válido. Solo se permiten CSV, JSON y XLSX');
+        errorHandler.handleError(
+          new Error('Tipo de archivo no válido'), 
+          { 
+            category: 'validation', 
+            operation: 'upload',
+            fileName: file.name,
+            userId: user.id
+          }
+        );
         return { success: false };
       }
 
-      console.log('🔍 Iniciando validación profunda del archivo...');
+      console.log('🔍 Iniciando validação profunda do arquivo...');
       
-      // Realizar validación profunda del archivo
+      // Realizar validação profunda do arquivo
       const validator = new FileValidator(CUSTOMER_DATA_CONFIG);
       const validationResult: ValidationResult = await validator.validateFile(file);
       
       setValidating(false);
 
       if (!validationResult.isValid) {
-        console.error('❌ Archivo no válido:', validationResult.errors);
+        console.error('❌ Arquivo não válido:', validationResult.errors);
         
-        // Mostrar errores específicos al usuario
-        const errorMessages = validationResult.errors
-          .slice(0, 3) // Mostrar máximo 3 errores para no saturar
-          .map(error => error.message)
-          .join('\n');
-        
-        toast.error(`Archivo no válido:\n${errorMessages}`);
-        
-        // Si hay más errores, mostrar un resumen
-        if (validationResult.errors.length > 3) {
-          toast.error(`... y ${validationResult.errors.length - 3} errores adicionales`);
-        }
+        const processedError = errorHandler.handleValidationError(
+          validationResult.errors, 
+          {
+            category: 'validation',
+            operation: 'file_validation',
+            fileName: file.name,
+            userId: user.id
+          }
+        );
         
         return { 
           success: false, 
@@ -76,21 +84,21 @@ export const useUpload = () => {
       // Mostrar advertencias si las hay
       if (validationResult.warnings && validationResult.warnings.length > 0) {
         validationResult.warnings.forEach(warning => {
-          toast.warning(warning);
+          errorHandler.showWarning(warning);
         });
       }
 
-      // Mostrar estadísticas de validación
+      // Mostrar estadísticas de validação
       if (validationResult.stats) {
-        console.log('📊 Estadísticas del archivo:', validationResult.stats);
-        toast.success(
-          `Archivo validado: ${validationResult.stats.totalRows} filas, ${validationResult.stats.totalColumns} columnas`
+        console.log('📊 Estatísticas do arquivo:', validationResult.stats);
+        errorHandler.showSuccess(
+          `Arquivo validado: ${validationResult.stats.totalRows} linhas, ${validationResult.stats.totalColumns} colunas`
         );
       }
 
-      console.log('✅ Archivo validado correctamente, procediendo con la subida...');
+      console.log('✅ Arquivo validado corretamente, procedendo com upload...');
 
-      // Subir archivo a Supabase Storage
+      // Subir arquivo a Supabase Storage
       const fileName = `${Date.now()}-${file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('data-files')
@@ -98,7 +106,12 @@ export const useUpload = () => {
 
       if (uploadError) {
         console.error('Error uploading file:', uploadError);
-        toast.error('Error al subir archivo');
+        errorHandler.handleError(uploadError, {
+          category: 'upload',
+          operation: 'storage_upload',
+          fileName: file.name,
+          userId: user.id
+        });
         return { success: false };
       }
 
@@ -129,11 +142,16 @@ export const useUpload = () => {
 
       if (dbError) {
         console.error('Error saving file record:', dbError);
-        toast.error('Error al guardar información del archivo');
+        errorHandler.handleError(dbError, {
+          category: 'supabase',
+          operation: 'save_file_record',
+          fileName: file.name,
+          userId: user.id
+        });
         return { success: false };
       }
 
-      toast.success('Archivo subido y validado exitosamente');
+      errorHandler.showSuccess('Arquivo enviado e validado com sucesso');
       return { 
         success: true, 
         fileId: fileRecord.id,
@@ -141,7 +159,11 @@ export const useUpload = () => {
       };
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error('Error al subir archivo');
+      errorHandler.handleError(error, {
+        category: 'upload',
+        operation: 'upload_file',
+        fileName: file.name
+      });
       return { success: false };
     } finally {
       setUploading(false);

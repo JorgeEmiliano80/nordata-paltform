@@ -1,113 +1,143 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { errorHandler } from '@/lib/errorHandler';
 
-export interface ClientSegment {
-  id: string;
+export interface CustomerSegment {
+  segment_id: string;
   user_id: string;
-  segment: 'vip' | 'premium' | 'regular' | 'new' | 'at_risk' | 'inactive';
-  score: number;
-  revenue_contribution: number;
-  activity_level: number;
-  risk_level: number;
-  last_activity: string;
+  segment_name: string;
+  segment_description: string;
   segment_updated_at: string;
-  criteria: any;
-  created_at: string;
-  updated_at: string;
-  user_profile?: {
+  profiles: {
     full_name: string;
     company_name: string;
-    role: string;
+  };
+}
+
+export interface AdvancedCustomerSegment {
+  id: string;
+  user_id: string;
+  segment_name: string;
+  segment_description: string;
+  updated_at: string;
+  customers: any[];
+  profiles: {
+    full_name: string;
+    company_name: string;
   };
 }
 
 export const useCustomerSegmentation = () => {
   const [loading, setLoading] = useState(false);
-  const [clientSegments, setClientSegments] = useState<ClientSegment[]>([]);
 
-  const checkIfAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-    
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-    
-    return profile?.role === 'admin';
-  };
-
-  const fetchClientSegments = async () => {
+  const calculateSegmentation = async (userId?: string) => {
     try {
       setLoading(true);
-      const isAdmin = await checkIfAdmin();
-      
-      let query = supabase.from('client_segments').select('*');
-      
-      if (!isAdmin) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        query = query.eq('user_id', user.id);
-      }
-      
-      const { data: segments, error: segmentsError } = await query
-        .order('segment_updated_at', { ascending: false });
 
-      if (segmentsError) {
-        console.error('Error fetching client segments:', segmentsError);
-        toast.error('Error al cargar segmentación de clientes');
-        return;
+      const { data, error } = await supabase.rpc('calculate_client_segmentation', {
+        target_user_id: userId || null
+      });
+
+      if (error) {
+        errorHandler.handleError(error, {
+          category: 'supabase',
+          operation: 'calculate_segmentation',
+          userId,
+          technicalDetails: { function: 'calculate_client_segmentation' }
+        });
+        return { success: false };
       }
 
-      if (segments && segments.length > 0) {
-        const userIds = segments.map(s => s.user_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, company_name, role')
-          .in('user_id', userIds);
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        }
-
-        const segmentsWithProfiles = segments.map(segment => ({
-          ...segment,
-          user_profile: profiles?.find(p => p.user_id === segment.user_id)
-        }));
-
-        setClientSegments(segmentsWithProfiles);
-      } else {
-        setClientSegments([]);
-      }
+      errorHandler.showSuccess('Segmentação calculada com sucesso');
+      return { success: true, data };
     } catch (error) {
-      console.error('Error fetching client segments:', error);
-      toast.error('Error al cargar segmentación de clientes');
+      errorHandler.handleError(error, {
+        category: 'unknown',
+        operation: 'calculate_segmentation',
+        userId
+      });
+      return { success: false };
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateSegmentation = async (userId?: string) => {
+  const getSegmentationData = async (userId?: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.rpc('calculate_client_segmentation', {
-        target_user_id: userId || null
-      });
 
-      if (error) {
-        console.error('Error calculating segmentation:', error);
-        toast.error('Error al calcular segmentación');
-        return;
+      const query = supabase
+        .from('client_segments')
+        .select(`
+          *,
+          profiles!inner(full_name, company_name)
+        `);
+
+      if (userId) {
+        query.eq('user_id', userId);
       }
 
-      toast.success('Segmentación calculada exitosamente');
-      await fetchClientSegments();
+      const { data, error } = await query
+        .order('segment_updated_at', { ascending: false });
+
+      if (error) {
+        errorHandler.handleError(error, {
+          category: 'supabase',
+          operation: 'fetch_segmentation_data',
+          userId
+        });
+        return [];
+      }
+
+      return data || [];
     } catch (error) {
-      console.error('Error calculating segmentation:', error);
-      toast.error('Error al calcular segmentación');
+      errorHandler.handleError(error, {
+        category: 'unknown',
+        operation: 'fetch_segmentation_data',
+        userId
+      });
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAdvancedSegmentation = async (userId?: string) => {
+    try {
+      setLoading(true);
+
+      const query = supabase
+        .from('customer_segments_advanced')
+        .select(`
+          *,
+          customers!inner(*),
+          profiles!inner(full_name, company_name)
+        `);
+
+      if (userId) {
+        query.eq('user_id', userId);
+      }
+
+      const { data, error } = await query
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        errorHandler.handleError(error, {
+          category: 'supabase',
+          operation: 'fetch_advanced_segmentation',
+          userId
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      errorHandler.handleError(error, {
+        category: 'unknown',
+        operation: 'fetch_advanced_segmentation',
+        userId
+      });
+      return [];
     } finally {
       setLoading(false);
     }
@@ -115,8 +145,8 @@ export const useCustomerSegmentation = () => {
 
   return {
     loading,
-    clientSegments,
-    fetchClientSegments,
-    calculateSegmentation
+    calculateSegmentation,
+    getSegmentationData,
+    getAdvancedSegmentation
   };
 };
