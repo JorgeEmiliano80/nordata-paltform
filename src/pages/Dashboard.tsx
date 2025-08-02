@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,9 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
+import { TrackingProvider } from '@/components/tracking/TrackingProvider';
+import { TrackedButton } from '@/components/tracking/TrackedButton';
+import { TrackedTabs, TrackedTabsTrigger, TabsContent, TabsList } from '@/components/tracking/TrackedTabs';
 
 const Dashboard = () => {
   const { user, profile, isAdmin } = useAuth();
@@ -68,21 +70,23 @@ const Dashboard = () => {
   );
 
   const QuickAction = ({ title, description, icon: Icon, onClick, variant = "outline" }: any) => (
-    <Button 
+    <TrackedButton 
       variant={variant}
       className="justify-start h-auto p-4 hover:bg-accent hover:text-accent-foreground transition-colors duration-300"
       onClick={onClick}
+      trackingText={title}
+      trackingId={`quick-action-${title.toLowerCase().replace(/\s+/g, '-')}`}
     >
       <Icon className="mr-3 h-5 w-5" />
       <div className="text-left">
         <div className="font-medium">{title}</div>
         <div className="text-sm text-muted-foreground">{description}</div>
       </div>
-    </Button>
+    </TrackedButton>
   );
 
   return (
-    <>
+    <TrackingProvider module="dashboard">
       <Navbar />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -280,42 +284,9 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-    </>
+    </TrackingProvider>
   );
 };
 
-const StatCard = ({ title, value, subtitle, icon: Icon, color, trend }: any) => (
-  <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-    <div className={`absolute inset-0 bg-gradient-to-r ${color} opacity-5 group-hover:opacity-10 transition-opacity duration-300`} />
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-      <Icon className={`h-4 w-4 ${color.replace('from-', 'text-').replace(' to-accent', '')}`} />
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-foreground">{value}</div>
-      <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
-      {trend && (
-        <div className="flex items-center mt-2">
-          <TrendingUp className="h-3 w-3 text-success mr-1" />
-          <span className="text-xs text-success">{trend}</span>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
-
-const QuickAction = ({ title, description, icon: Icon, onClick, variant = "outline" }: any) => (
-  <Button 
-    variant={variant}
-    className="justify-start h-auto p-4 hover:bg-accent hover:text-accent-foreground transition-colors duration-300"
-    onClick={onClick}
-  >
-    <Icon className="mr-3 h-5 w-5" />
-    <div className="text-left">
-      <div className="font-medium">{title}</div>
-      <div className="text-sm text-muted-foreground">{description}</div>
-    </div>
-  </Button>
-);
-
+// Remove duplicate StatCard and QuickAction components at the bottom since they're now defined inline
 export default Dashboard;

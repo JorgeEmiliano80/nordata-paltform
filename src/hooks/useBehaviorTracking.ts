@@ -16,7 +16,7 @@ export const useBehaviorTracking = () => {
         referrer: document.referrer
       });
     }
-  }, [user]);
+  }, [user, trackBehaviorEvent]);
 
   const trackFileUpload = (fileId: string, fileName: string, fileSize: number) => {
     trackBehaviorEvent('file_upload', {
@@ -62,12 +62,33 @@ export const useBehaviorTracking = () => {
     });
   };
 
+  // New method for visual interactions
+  const trackVisualInteraction = (
+    interactionType: string, 
+    element: string, 
+    module: string, 
+    description: string, 
+    metadata?: any
+  ) => {
+    trackBehaviorEvent('feature_use', {
+      action_type: 'interaction',
+      interaction_type: interactionType,
+      element,
+      module,
+      description,
+      metadata,
+      timestamp: new Date().toISOString()
+    });
+  };
+
   return {
     trackFileUpload,
     trackFileProcess,
     trackChatMessage,
     trackDashboardView,
     trackResultDownload,
-    trackFeatureUse
+    trackFeatureUse,
+    trackVisualInteraction,
+    trackBehaviorEvent
   };
 };

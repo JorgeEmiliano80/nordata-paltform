@@ -3,18 +3,23 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import CustomersList from '@/components/CustomersList';
 import AdvancedSegmentationDashboard from '@/components/customers/AdvancedSegmentationDashboard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrackedTabs, TrackedTabsTrigger, TabsContent, TabsList } from '@/components/tracking/TrackedTabs';
+import { TrackingProvider } from '@/components/tracking/TrackingProvider';
 
 const Customers = () => {
   return (
-    <>
+    <TrackingProvider module="customers">
       <Navbar />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
-          <Tabs defaultValue="list" className="w-full">
+          <TrackedTabs defaultValue="list" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="list">Lista de Clientes</TabsTrigger>
-              <TabsTrigger value="segmentation">Segmentación Avanzada</TabsTrigger>
+              <TrackedTabsTrigger value="list" trackingName="Lista de Clientes">
+                Lista de Clientes
+              </TrackedTabsTrigger>
+              <TrackedTabsTrigger value="segmentation" trackingName="Segmentación Avanzada">
+                Segmentación Avanzada
+              </TrackedTabsTrigger>
             </TabsList>
             
             <TabsContent value="list" className="space-y-4">
@@ -24,10 +29,10 @@ const Customers = () => {
             <TabsContent value="segmentation" className="space-y-4">
               <AdvancedSegmentationDashboard />
             </TabsContent>
-          </Tabs>
+          </TrackedTabs>
         </div>
       </div>
-    </>
+    </TrackingProvider>
   );
 };
 
