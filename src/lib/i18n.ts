@@ -33,9 +33,8 @@ i18n
       order: ['localStorage', 'navigator', 'htmlTag'],
       lookupLocalStorage: 'preferredLanguage',
       caches: ['localStorage'],
-      checkWhitelist: true,
     },
-    whitelist: ['en', 'es', 'pt'],
+    supportedLngs: ['en', 'es', 'pt'],
     load: 'languageOnly',
   });
 
