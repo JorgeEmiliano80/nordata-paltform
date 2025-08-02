@@ -60,7 +60,7 @@ export class DatabricksClient {
         file_url: params.fileUrl,
         file_name: params.fileName,
         file_type: params.fileType,
-        callback_url: `${this.config.workspaceUrl}/functions/v1/handle-databricks-callback`
+        callback_url: `${window.location.origin}/functions/v1/handle-databricks-callback`
       }
     };
 
@@ -145,20 +145,17 @@ export class DatabricksClient {
 }
 
 /**
- * Utility para crear una instancia del cliente desde variables de entorno
+ * Utility para crear una instancia del cliente desde configuración
+ * Nota: En producción, estas variables deberían venir del servidor por seguridad
  */
-export function createDatabricksClient(): DatabricksClient {
-  const workspaceUrl = Deno.env.get('DATABRICKS_WORKSPACE_URL');
-  const token = Deno.env.get('DATABRICKS_TOKEN');
-  const jobId = Deno.env.get('DATABRICKS_JOB_ID');
-
-  if (!workspaceUrl || !token || !jobId) {
-    throw new Error('Missing required Databricks environment variables: DATABRICKS_WORKSPACE_URL, DATABRICKS_TOKEN, DATABRICKS_JOB_ID');
+export function createDatabricksClient(config: DatabricksConfig): DatabricksClient {
+  if (!config.workspaceUrl || !config.token || !config.jobId) {
+    throw new Error('Missing required Databricks configuration: workspaceUrl, token, jobId');
   }
 
   return new DatabricksClient({
-    workspaceUrl: workspaceUrl.replace(/\/$/, ''), // Remove trailing slash
-    token,
-    jobId
+    workspaceUrl: config.workspaceUrl.replace(/\/$/, ''), // Remove trailing slash
+    token: config.token,
+    jobId: config.jobId
   });
 }
