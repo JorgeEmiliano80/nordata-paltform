@@ -7,7 +7,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import AdminRoute from "@/components/AdminRoute";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -28,6 +28,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 import Customers from "./pages/Customers";
 import Insights from "./pages/Insights";
+import Unauthorized from "./pages/Unauthorized";
 import "./App.css";
 import "./lib/i18n";
 
@@ -50,23 +51,102 @@ function App() {
                   <Route path="/invite/:token" element={<InviteRegister />} />
                   <Route path="/landing" element={<Landing />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/unauthorized" element={<Unauthorized />} />
                   
-                  {/* Protected routes */}
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-                  <Route path="/data" element={<ProtectedRoute><Data /></ProtectedRoute>} />
-                  <Route path="/pipelines" element={<ProtectedRoute><Pipelines /></ProtectedRoute>} />
-                  <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
-                  <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
-                  <Route path="/ai" element={<ProtectedRoute><AI /></ProtectedRoute>} />
-                  <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
-                  <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-                  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  {/* Client routes (also accessible by admins) */}
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <Dashboard />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/upload" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <Upload />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/data" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <Data />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/pipelines" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <Pipelines />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/insights" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <Insights />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/chatbot" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <Chatbot />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/ai" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <AI />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/ai-assistant" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <AIAssistant />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/customers" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <Customers />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="client">
+                        <Settings />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
                   
-                  {/* Admin routes */}
-                  <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-                  <Route path="/admin-panel" element={<AdminRoute><AdminPanel /></AdminRoute>} />
-                  <Route path="/analytics" element={<AdminRoute><Analytics /></AdminRoute>} />
+                  {/* Admin-only routes */}
+                  <Route path="/admin" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="admin">
+                        <Admin />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin-panel" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="admin">
+                        <AdminPanel />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/analytics" element={
+                    <ProtectedRoute>
+                      <RoleProtectedRoute requiredRole="admin">
+                        <Analytics />
+                      </RoleProtectedRoute>
+                    </ProtectedRoute>
+                  } />
                   
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />
