@@ -22,6 +22,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   session: Session | null;
   loading: boolean;
+  profileLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, invitationToken?: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
@@ -62,9 +63,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const createDefaultProfile = async (user: User) => {
+    try {
+      console.log('Creating default profile for user:', user.id);
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: user.id,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
+          company_name: user.user_metadata?.company_name || null,
+          industry: user.user_metadata?.industry || null,
+          role: 'client',
+          accepted_terms: false,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating default profile:', error);
+        return null;
+      }
+
+      console.log('Default profile created:', data);
+      return data;
+    } catch (error) {
+      console.error('Error creating default profile:', error);
+      return null;
+    }
+  };
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      setProfileLoading(true);
+      console.log('Fetching profile for user:', userId);
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -73,16 +109,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching profile:', error);
+        
         if (error.code === 'PGRST116') {
-          setProfile(null);
+          console.log('Profile not found, creating default profile');
+          // Get current user to create profile
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const newProfile = await createDefaultProfile(user);
+            if (newProfile) {
+              setProfile(newProfile);
+              return;
+            }
+          }
         }
+        
+        setProfile(null);
         return;
       }
 
+      console.log('Profile fetched successfully:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -100,6 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 100);
         } else {
           setProfile(null);
+          setProfileLoading(false);
         }
         setLoading(false);
       }
@@ -111,6 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfile(session.user.id);
+      } else {
+        setProfileLoading(false);
       }
       setLoading(false);
     });
@@ -217,6 +271,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     session,
     loading,
+    profileLoading,
     signIn,
     signUp,
     signOut,

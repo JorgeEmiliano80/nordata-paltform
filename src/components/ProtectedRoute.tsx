@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
 
   if (loading) {
     return (
@@ -26,12 +26,33 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   // If user exists but profile is still loading, show loading state
-  if (!profile) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If profile failed to load after attempts, show error and redirect
+  if (!profile && !profileLoading) {
+    console.error('Failed to load or create user profile');
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <p className="text-destructive">Error al cargar el perfil de usuario</p>
+          <p className="text-muted-foreground text-sm">
+            Por favor, contacte al administrador
+          </p>
+          <button 
+            onClick={() => window.location.href = '/login'}
+            className="text-primary hover:underline"
+          >
+            Volver al login
+          </button>
         </div>
       </div>
     );
