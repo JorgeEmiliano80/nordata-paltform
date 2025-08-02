@@ -13,6 +13,11 @@ export interface FileRecord {
   status: 'uploaded' | 'processing' | 'done' | 'error';
   created_at: string;
   updated_at: string;
+  uploaded_at: string;
+  processed_at: string | null;
+  error_message: string | null;
+  databricks_job_id: string | null;
+  metadata: any;
 }
 
 export const useUpload = () => {

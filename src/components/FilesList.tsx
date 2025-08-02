@@ -115,7 +115,7 @@ const FilesList: React.FC = () => {
                       <span>{formatFileSize(file.file_size)}</span>
                       <span>{file.file_type}</span>
                       <span>
-                        {format(new Date(file.uploaded_at), 'PPp', { locale: es })}
+                        {format(new Date(file.uploaded_at || file.created_at), 'PPp', { locale: es })}
                       </span>
                     </div>
                     {file.error_message && (
