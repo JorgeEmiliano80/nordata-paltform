@@ -28,12 +28,40 @@ export interface AdvancedCustomerSegment {
   };
 }
 
+// Raw database segment interface for mapping
+interface RawClientSegment {
+  id: string;
+  user_id: string;
+  segment: string;
+  activity_level: number;
+  revenue_contribution: number;
+  risk_level: number;
+  score: number;
+  segment_updated_at: string;
+  profiles: {
+    full_name: string;
+    company_name: string;
+  };
+}
+
 // Export alias for backward compatibility
 export type ClientSegment = CustomerSegment;
 
 export const useCustomerSegmentation = () => {
   const [loading, setLoading] = useState(false);
   const [clientSegments, setClientSegments] = useState<CustomerSegment[]>([]);
+
+  // Helper function to map raw database data to CustomerSegment interface
+  const mapRawSegmentToCustomerSegment = (rawSegment: RawClientSegment): CustomerSegment => {
+    return {
+      segment_id: rawSegment.id,
+      user_id: rawSegment.user_id,
+      segment_name: rawSegment.segment,
+      segment_description: `Segmento ${rawSegment.segment} com score ${rawSegment.score}`,
+      segment_updated_at: rawSegment.segment_updated_at,
+      profiles: rawSegment.profiles
+    };
+  };
 
   const calculateSegmentation = async (userId?: string) => {
     try {
@@ -94,7 +122,9 @@ export const useCustomerSegmentation = () => {
         return [];
       }
 
-      return data || [];
+      // Map raw data to CustomerSegment interface
+      const mappedData = (data || []).map(mapRawSegmentToCustomerSegment);
+      return mappedData;
     } catch (error) {
       errorHandler.handleError(error, {
         category: 'unknown',
