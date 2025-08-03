@@ -97,6 +97,9 @@ export const useInvites = () => {
 
   const fetchInvitations = async () => {
     try {
+      // Después de la limpieza, no deberían existir invitaciones pendientes
+      console.log('Fetching invitations after database cleanup - should be empty');
+      
       const { data: invitations, error: invitationsError } = await supabase
         .from('pending_invitations')
         .select('*')
@@ -108,6 +111,7 @@ export const useInvites = () => {
         return [];
       }
 
+      console.log(`Found ${invitations?.length || 0} pending invitations after cleanup`);
       return invitations || [];
     } catch (error: any) {
       console.error('Error fetching invitations:', error);

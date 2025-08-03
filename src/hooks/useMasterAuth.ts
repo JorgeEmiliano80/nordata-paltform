@@ -25,9 +25,9 @@ export const useMasterAuth = () => {
     try {
       setLoading(true);
       
-      console.log('Fetching admin data...');
+      console.log('Fetching admin data after database cleanup...');
       
-      // Usar la nueva función edge para obtener usuarios
+      // Usar la función edge para obtener usuarios
       const { data, error } = await supabase.functions.invoke('admin-get-users');
 
       if (error) {
@@ -37,9 +37,13 @@ export const useMasterAuth = () => {
       }
 
       if (data && data.success) {
-        console.log(`Successfully loaded ${data.users.length} users`);
+        console.log(`Successfully loaded ${data.users.length} users after cleanup`);
+        
+        // Filtrar solo usuarios que no sean admin para mostrar en el panel
+        const clientUsers = data.users.filter(user => user.role === 'client');
+        
         return {
-          users: data.users || []
+          users: clientUsers || []
         };
       } else {
         console.error('Function returned error:', data);
