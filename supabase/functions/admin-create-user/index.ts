@@ -15,6 +15,37 @@ interface CreateUserRequest {
   temporaryPassword: string;
 }
 
+// Función para normalizar valores de industria permitidos
+function normalizeIndustry(industry: string): string {
+  if (!industry) return 'tecnologia';
+  
+  const normalized = industry.toLowerCase().trim();
+  
+  // Mapear valores comunes a los valores permitidos en la base de datos
+  const industryMap: Record<string, string> = {
+    'tecnologia': 'tecnologia',
+    'tecnología': 'tecnologia',
+    'technology': 'tecnologia',
+    'tech': 'tecnologia',
+    'salud': 'salud',
+    'health': 'salud',
+    'financiero': 'financiero',
+    'finanzas': 'financiero',
+    'finance': 'financiero',
+    'educacion': 'educacion',
+    'educación': 'educacion',
+    'education': 'educacion',
+    'retail': 'retail',
+    'comercio': 'retail',
+    'manufactura': 'manufactura',
+    'manufacturing': 'manufactura',
+    'servicios': 'servicios',
+    'services': 'servicios'
+  };
+
+  return industryMap[normalized] || 'tecnologia'; // Default a 'tecnologia' si no se encuentra
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,6 +59,7 @@ serve(async (req) => {
     // Verificar autenticación
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('No authorization header provided');
       return new Response(
         JSON.stringify({ success: false, error: 'No authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -40,6 +72,7 @@ serve(async (req) => {
     );
 
     if (authError || !user) {
+      console.error('Auth error:', authError);
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -54,6 +87,7 @@ serve(async (req) => {
       .single();
 
     if (profileError || profile?.role !== 'admin') {
+      console.error('Profile error or not admin:', profileError, profile);
       return new Response(
         JSON.stringify({ success: false, error: 'Access denied: Admin role required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -62,9 +96,14 @@ serve(async (req) => {
 
     const { email, fullName, companyName, industry, temporaryPassword }: CreateUserRequest = await req.json();
 
-    console.log(`Creando usuario: ${email} por admin: ${user.id}`);
+    console.log(`Creating user: ${email} by admin: ${user.id}`);
+    console.log('Input industry value:', industry);
 
-    // Verificar si ya existe un usuario con este email en profiles
+    // Normalizar el valor de industria
+    const normalizedIndustry = normalizeIndustry(industry);
+    console.log('Normalized industry value:', normalizedIndustry);
+
+    // Verificar si ya existe un usuario con este email y nombre
     const { data: existingProfile, error: profileCheckError } = await supabase
       .from('profiles')
       .select('user_id, full_name')
@@ -73,11 +112,11 @@ serve(async (req) => {
       .maybeSingle();
 
     if (profileCheckError) {
-      console.error('Error verificando perfil existente:', profileCheckError);
+      console.error('Error checking existing profile:', profileCheckError);
     }
 
     if (existingProfile) {
-      console.log('Usuario ya existe en profiles:', existingProfile);
+      console.log('User already exists in profiles:', existingProfile);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -101,23 +140,24 @@ serve(async (req) => {
       });
 
       if (userError) {
-        console.error('Error creando usuario auth:', userError);
+        console.error('Error creating auth user:', userError);
         
         // Si el usuario ya existe en auth, intentar obtenerlo
         if (userError.message?.includes('already been registered') || userError.code === 'email_exists') {
-          console.log('Usuario ya existe en auth, intentando obtener datos...');
+          console.log('User already exists in auth, trying to get existing user...');
           
           // Buscar usuario por email usando el service key
           const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
           
           if (listError) {
+            console.error('Error listing users:', listError);
             throw new Error('Error buscando usuarios existentes');
           }
           
           const existingUser = existingUsers.users.find(u => u.email === email);
           if (existingUser) {
             authUser = existingUser;
-            console.log('Usuario existente encontrado:', existingUser.id);
+            console.log('Existing auth user found:', existingUser.id);
           } else {
             throw new Error('No se pudo crear ni encontrar el usuario');
           }
@@ -126,10 +166,10 @@ serve(async (req) => {
         }
       } else {
         authUser = userData.user;
-        console.log('Usuario creado exitosamente en auth:', authUser.id);
+        console.log('Auth user created successfully:', authUser.id);
       }
     } catch (authErr: any) {
-      console.error('Error en proceso de creación de usuario:', authErr);
+      console.error('Error in user creation process:', authErr);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -148,13 +188,23 @@ serve(async (req) => {
 
     // Crear o actualizar perfil en la tabla profiles
     try {
+      console.log('Creating profile with data:', {
+        user_id: authUser.id,
+        full_name: fullName,
+        company_name: companyName,
+        industry: normalizedIndustry,
+        role: 'client',
+        is_active: true,
+        accepted_terms: true
+      });
+
       const { data: profileData, error: profileInsertError } = await supabase
         .from('profiles')
         .upsert({
           user_id: authUser.id,
           full_name: fullName,
           company_name: companyName,
-          industry: industry,
+          industry: normalizedIndustry, // Usar valor normalizado
           role: 'client',
           is_active: true,
           accepted_terms: true,
@@ -165,19 +215,25 @@ serve(async (req) => {
         .single();
 
       if (profileInsertError) {
-        console.error('Error creando perfil:', profileInsertError);
+        console.error('Error creating profile:', profileInsertError);
         return new Response(
-          JSON.stringify({ success: false, error: 'Error creando perfil de usuario' }),
+          JSON.stringify({ 
+            success: false, 
+            error: `Error creando perfil: ${profileInsertError.message}` 
+          }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log('Perfil creado/actualizado exitosamente:', profileData);
+      console.log('Profile created/updated successfully:', profileData);
 
     } catch (profileErr: any) {
-      console.error('Error en creación de perfil:', profileErr);
+      console.error('Error in profile creation:', profileErr);
       return new Response(
-        JSON.stringify({ success: false, error: 'Error creando perfil de usuario' }),
+        JSON.stringify({ 
+          success: false, 
+          error: `Error creando perfil de usuario: ${profileErr.message}` 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -197,14 +253,14 @@ serve(async (req) => {
       
       if (emailErr) {
         emailError = emailErr.message;
-        console.log('Email no enviado:', emailErr.message);
+        console.log('Email not sent:', emailErr.message);
       } else {
         emailSent = true;
-        console.log('Email de bienvenida enviado exitosamente');
+        console.log('Welcome email sent successfully');
       }
     } catch (emailException: any) {
       emailError = emailException.message;
-      console.log('Excepción al enviar email:', emailException.message);
+      console.log('Exception sending email:', emailException.message);
     }
 
     return new Response(
@@ -226,7 +282,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Error general en admin-create-user:', error);
+    console.error('General error in admin-create-user:', error);
     return new Response(
       JSON.stringify({
         success: false,
