@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,6 +68,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log(`Creating default profile for user: ${user.id} (attempt ${retryCount + 1})`);
       
+      // Verificar si ya existe un perfil primero
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (existingProfile) {
+        console.log('Profile already exists:', existingProfile);
+        return existingProfile;
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .insert({
@@ -77,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           company_name: user.user_metadata?.company_name || null,
           industry: user.user_metadata?.industry || null,
           role: 'client',
-          accepted_terms: false,
+          accepted_terms: true,
           is_active: true
         })
         .select()
@@ -85,6 +96,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error creating default profile:', error);
+        
+        // Si es error de duplicado, intentar obtener el perfil existente
+        if (error.code === '23505') { // Duplicate key error
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (existingProfile) {
+            console.log('Found existing profile after duplicate error:', existingProfile);
+            return existingProfile;
+          }
+        }
         
         // Retry once if it's a network error
         if (retryCount === 0 && (error.message?.includes('network') || error.message?.includes('fetch'))) {
@@ -121,27 +146,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no data
 
       if (error) {
         console.error('Error fetching profile:', error);
-        
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating default profile');
-          // Get current user to create profile
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const newProfile = await createDefaultProfile(user);
-            if (newProfile) {
-              setProfile(newProfile);
-              return;
-            } else {
-              console.error('Failed to create default profile');
-              setProfile(null);
-              return;
-            }
-          }
-        }
         
         // Retry once for network errors
         if (retryCount === 0 && (error.message?.includes('network') || error.message?.includes('fetch'))) {
@@ -152,6 +160,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setProfile(null);
         return;
+      }
+
+      if (!data) {
+        console.log('Profile not found, creating default profile');
+        // Get current user to create profile
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.id === userId) {
+          const newProfile = await createDefaultProfile(user);
+          if (newProfile) {
+            setProfile(newProfile);
+            return;
+          } else {
+            console.error('Failed to create default profile');
+            setProfile(null);
+            return;
+          }
+        } else {
+          console.error('User mismatch or no user found');
+          setProfile(null);
+          return;
+        }
       }
 
       console.log('Profile fetched successfully:', data);
