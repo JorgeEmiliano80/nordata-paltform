@@ -73,12 +73,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (existingProfile) {
         console.log('Profile already exists:', existingProfile);
         return existingProfile;
       }
+      
+      // Use a valid default industry from the constraint
+      const defaultIndustry = user.user_metadata?.industry || 'tecnologia';
       
       const { data, error } = await supabase
         .from('profiles')
@@ -86,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user_id: user.id,
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
           company_name: user.user_metadata?.company_name || null,
-          industry: user.user_metadata?.industry || null,
+          industry: defaultIndustry,
           role: 'client',
           accepted_terms: true,
           is_active: true
@@ -103,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .select('*')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
           
           if (existingProfile) {
             console.log('Found existing profile after duplicate error:', existingProfile);
