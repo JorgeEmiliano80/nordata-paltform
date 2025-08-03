@@ -62,6 +62,9 @@ serve(async (req) => {
 
     console.log(`Creando usuario: ${email} por admin: ${user.id}`);
 
+    // Normalizar la industria para asegurar compatibilidad con la restricción
+    const normalizedIndustry = industry ? industry.toLowerCase().replace(/[^a-z]/g, '') : 'tecnologia';
+
     // Crear usuario en Supabase Auth con contraseña temporal
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email: email,
@@ -70,7 +73,7 @@ serve(async (req) => {
       user_metadata: {
         full_name: fullName,
         company_name: companyName,
-        industry: industry || 'tecnologia',
+        industry: normalizedIndustry,
         require_password_change: true
       }
     });
@@ -95,7 +98,7 @@ serve(async (req) => {
         user_id: newUser.user.id,
         full_name: fullName,
         company_name: companyName,
-        industry: industry || 'tecnologia',
+        industry: normalizedIndustry, // Usar la industria normalizada
         role: 'client',
         accepted_terms: true,
         is_active: true
