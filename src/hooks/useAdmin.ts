@@ -2,6 +2,7 @@
 import { useInvites } from './useInvites';
 import { useMasterAuth } from './useMasterAuth';
 import { errorHandler } from '@/lib/errorHandler';
+import { supabase } from '@/integrations/supabase/client';
 
 // Re-export types for backward compatibility
 export type { PendingInvitation } from './useInvites';
@@ -46,6 +47,39 @@ export const useAdmin = () => {
         technicalDetails: { email, name, company, industry }
       });
       return { success: false };
+    }
+  };
+
+  const createUserWithPassword = async (
+    email: string, 
+    fullName: string, 
+    companyName: string, 
+    industry: string, 
+    temporaryPassword: string
+  ) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email,
+          fullName,
+          companyName,
+          industry,
+          temporaryPassword
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      errorHandler.handleError(error, {
+        category: 'supabase',
+        operation: 'create_user_with_password',
+        technicalDetails: { email, fullName, companyName, industry }
+      });
+      return { success: false, error: error.message };
     }
   };
 
@@ -96,6 +130,7 @@ export const useAdmin = () => {
     loading: invites.loading || masterAuth.loading,
     fetchAdminData,
     createInvitation,
+    createUserWithPassword,
     manageUser
   };
 };

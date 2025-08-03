@@ -2,9 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Users, Settings, Shield, Activity, UserPlus } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -12,20 +9,13 @@ import AdminDashboard from '@/components/admin/AdminDashboard';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import AdminSystemSettings from '@/components/admin/AdminSystemSettings';
 import AdminActivityMonitor from '@/components/admin/AdminActivityMonitor';
-import { toast } from 'sonner';
+import AdminUserInviteDialog from '@/components/admin/AdminUserInviteDialog';
 
 const Admin = () => {
-  const { loading, fetchAdminData, createInvitation, manageUser } = useAdmin();
+  const { loading, fetchAdminData, createUserWithPassword, manageUser } = useAdmin();
   const [users, setUsers] = useState<any[]>([]);
   const [invitations, setInvitations] = useState<any[]>([]);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  
-  const [inviteForm, setInviteForm] = useState({
-    email: '',
-    fullName: '',
-    companyName: '',
-    industry: '',
-  });
 
   const loadAdminData = async () => {
     const data = await fetchAdminData();
@@ -37,24 +27,20 @@ const Admin = () => {
     loadAdminData();
   }, []);
 
-  const handleCreateInvitation = async () => {
-    if (!inviteForm.email || !inviteForm.fullName) {
-      toast.error('Email y nombre son requeridos');
-      return;
-    }
-
-    const result = await createInvitation(
-      inviteForm.email,
-      inviteForm.fullName,
-      inviteForm.companyName,
-      inviteForm.industry
-    );
-
+  const handleCreateUser = async (
+    email: string, 
+    fullName: string, 
+    companyName: string, 
+    industry: string, 
+    temporaryPassword: string
+  ) => {
+    const result = await createUserWithPassword(email, fullName, companyName, industry, temporaryPassword);
+    
     if (result.success) {
-      setInviteForm({ email: '', fullName: '', companyName: '', industry: '' });
-      setInviteDialogOpen(false);
       await loadAdminData();
     }
+    
+    return result;
   };
 
   const handleUserAction = async (action: string, userId: string, data?: any) => {
@@ -110,7 +96,7 @@ const Admin = () => {
                 className="flex items-center gap-2"
               >
                 <UserPlus className="h-4 w-4" />
-                Invitar Usuario
+                Crear Usuario
               </Button>
             </div>
 
@@ -158,66 +144,13 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* Invite User Dialog */}
-        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
-              <DialogDescription>
-                Crea una invitación para que un nuevo usuario se una a la plataforma
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="usuario@empresa.com"
-                  value={inviteForm.email}
-                  onChange={(e) => setInviteForm({...inviteForm, email: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nombre Completo *</Label>
-                <Input
-                  id="fullName"
-                  placeholder="Juan Pérez"
-                  value={inviteForm.fullName}
-                  onChange={(e) => setInviteForm({...inviteForm, fullName: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Empresa</Label>
-                <Input
-                  id="companyName"
-                  placeholder="Empresa SA"
-                  value={inviteForm.companyName}
-                  onChange={(e) => setInviteForm({...inviteForm, companyName: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="industry">Industria</Label>
-                <Input
-                  id="industry"
-                  placeholder="Tecnología"
-                  value={inviteForm.industry}
-                  onChange={(e) => setInviteForm({...inviteForm, industry: e.target.value})}
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleCreateInvitation} disabled={loading}>
-                  {loading ? 'Creando...' : 'Crear Invitación'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* User Creation Dialog */}
+        <AdminUserInviteDialog
+          open={inviteDialogOpen}
+          onOpenChange={setInviteDialogOpen}
+          onInviteUser={handleCreateUser}
+          loading={loading}
+        />
       </div>
     </>
   );
