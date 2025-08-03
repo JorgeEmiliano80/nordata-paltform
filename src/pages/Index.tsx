@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Shield, Database, Brain, Users, FileText, BarChart3, ArrowRight, Sparkles, Zap, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ const Index = () => {
   const [showSetup, setShowSetup] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -53,6 +54,10 @@ const Index = () => {
       delay: "300ms"
     }
   ];
+
+  const handleLoginClick = () => {
+    navigate('/login');
+  };
 
   if (showSetup) {
     return (
@@ -130,25 +135,15 @@ const Index = () => {
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
+            <div className="flex justify-center items-center mt-12">
               <Button 
                 size="lg" 
-                className="group relative bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 px-8 py-4 text-lg font-semibold shadow-2xl hover:shadow-primary/25 transition-all duration-300"
-                asChild
+                className="group relative bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 px-8 py-4 text-lg font-semibold shadow-2xl hover:shadow-primary/25 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                onClick={handleLoginClick}
               >
-                <a href="/login" className="flex items-center space-x-2">
-                  <span>{t('nav.login')}</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </a>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="group border-primary/20 hover:border-primary/40 hover:bg-primary/5 px-8 py-4 text-lg transition-all duration-300"
-              >
-                <Network className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
-                Ver Demo
+                <span>{t('nav.login')}</span>
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-md blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
               </Button>
             </div>
           </div>
