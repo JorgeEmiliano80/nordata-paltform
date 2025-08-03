@@ -3,6 +3,7 @@ import { useInvites } from './useInvites';
 import { useMasterAuth } from './useMasterAuth';
 import { errorHandler } from '@/lib/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Re-export types for backward compatibility
 export type { PendingInvitation } from './useInvites';
@@ -58,6 +59,13 @@ export const useAdmin = () => {
     temporaryPassword: string
   ) => {
     try {
+      console.log('useAdmin: Iniciando creación de usuario', { email, fullName });
+      
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        throw new Error('No hay sesión activa');
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
         body: {
           email,
@@ -65,21 +73,44 @@ export const useAdmin = () => {
           companyName,
           industry,
           temporaryPassword
+        },
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`
         }
       });
 
+      console.log('useAdmin: Respuesta de función edge:', { data, error });
+
       if (error) {
-        throw error;
+        console.error('useAdmin: Error de función edge:', error);
+        throw new Error(error.message || 'Error en la función edge');
       }
 
-      return data;
-    } catch (error) {
-      errorHandler.handleError(error, {
-        category: 'supabase',
-        operation: 'create_user_with_password',
-        technicalDetails: { email, fullName, companyName, industry }
-      });
-      return { success: false, error: error.message };
+      if (data && data.success) {
+        toast.success('Usuario creado exitosamente');
+        return {
+          success: true,
+          user_id: data.user_id,
+          emailSent: data.emailSent,
+          emailError: data.emailError
+        };
+      } else {
+        const errorMsg = data?.error || 'Error desconocido al crear usuario';
+        console.error('useAdmin: Error en respuesta:', errorMsg);
+        toast.error(errorMsg);
+        return { 
+          success: false, 
+          error: errorMsg 
+        };
+      }
+    } catch (error: any) {
+      console.error('useAdmin: Error general:', error);
+      const errorMsg = error.message || 'Error interno al crear usuario';
+      toast.error(errorMsg);
+      return { 
+        success: false, 
+        error: errorMsg 
+      };
     }
   };
 

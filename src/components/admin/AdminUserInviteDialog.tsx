@@ -46,16 +46,37 @@ const AdminUserInviteDialog: React.FC<AdminUserInviteDialogProps> = ({
       return;
     }
 
-    const result = await onInviteUser(
-      inviteForm.email,
-      inviteForm.fullName,
-      inviteForm.companyName,
-      inviteForm.industry,
-      inviteForm.temporaryPassword
-    );
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteForm.email)) {
+      toast.error('Por favor ingresa un email válido');
+      return;
+    }
 
-    if (result.success) {
-      setInviteResult(result);
+    try {
+      console.log('Iniciando creación de usuario:', inviteForm.email);
+      
+      const result = await onInviteUser(
+        inviteForm.email,
+        inviteForm.fullName,
+        inviteForm.companyName,
+        inviteForm.industry,
+        inviteForm.temporaryPassword
+      );
+
+      console.log('Resultado de creación:', result);
+
+      if (result && result.success) {
+        setInviteResult(result);
+        toast.success('Usuario creado exitosamente');
+      } else {
+        const errorMessage = result?.error || 'Error desconocido al crear usuario';
+        toast.error(errorMessage);
+        console.error('Error en creación:', errorMessage);
+      }
+    } catch (error: any) {
+      console.error('Error al crear usuario:', error);
+      toast.error('Error al crear usuario: ' + (error.message || 'Error desconocido'));
     }
   };
 
@@ -257,10 +278,13 @@ const AdminUserInviteDialog: React.FC<AdminUserInviteDialogProps> = ({
             </p>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={handleClose}>
+            <Button variant="outline" onClick={handleClose} disabled={loading}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={loading || !inviteForm.email || !inviteForm.fullName || !inviteForm.temporaryPassword}
+            >
               {loading ? 'Creando...' : 'Crear Usuario'}
             </Button>
           </div>
