@@ -7,6 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface CreateUserRequest {
+  email: string;
+  fullName: string;
+  companyName: string;
+  industry: string;
+  temporaryPassword: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -15,211 +23,218 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verificar autorización
-    const authHeader = req.headers.get('authorization');
+    // Verificar autenticación
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ success: false, error: 'No autorizado' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        JSON.stringify({ success: false, error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    // Verificar que el usuario es admin
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Token inválido' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        JSON.stringify({ success: false, error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verificar que sea admin
-    const { data: profile } = await supabase
+    // Verificar rol de admin
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
+    if (profileError || profile?.role !== 'admin') {
       return new Response(
-        JSON.stringify({ success: false, error: 'Permisos insuficientes' }),
-        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        JSON.stringify({ success: false, error: 'Access denied: Admin role required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Obtener datos del request
-    const { email, fullName, companyName, industry, temporaryPassword } = await req.json();
+    const { email, fullName, companyName, industry, temporaryPassword }: CreateUserRequest = await req.json();
 
     console.log(`Creando usuario: ${email} por admin: ${user.id}`);
 
-    // Normalizar la industria para asegurar compatibilidad con la restricción
-    const normalizedIndustry = industry ? industry.toLowerCase().replace(/[^a-z]/g, '') : 'tecnologia';
+    // Verificar si ya existe un usuario con este email en profiles
+    const { data: existingProfile, error: profileCheckError } = await supabase
+      .from('profiles')
+      .select('user_id, full_name')
+      .eq('full_name', fullName)
+      .eq('company_name', companyName)
+      .maybeSingle();
 
-    // Crear usuario en Supabase Auth con contraseña temporal
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-      email: email,
-      password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-        company_name: companyName,
-        industry: normalizedIndustry,
-        require_password_change: true
-      }
-    });
+    if (profileCheckError) {
+      console.error('Error verificando perfil existente:', profileCheckError);
+    }
 
-    if (createError) {
-      console.error('Error creando usuario:', createError);
+    if (existingProfile) {
+      console.log('Usuario ya existe en profiles:', existingProfile);
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: createError.message.includes('already been registered') 
-            ? 'Este email ya está registrado en el sistema' 
-            : createError.message
+        JSON.stringify({ 
+          success: false, 
+          error: 'Un usuario con este nombre y empresa ya existe' 
         }),
-        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Crear perfil del usuario
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        user_id: newUser.user.id,
-        full_name: fullName,
-        company_name: companyName,
-        industry: normalizedIndustry, // Usar la industria normalizada
-        role: 'client',
-        accepted_terms: true,
-        is_active: true
+    // Intentar crear usuario en Supabase Auth
+    let authUser;
+    try {
+      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+        email: email,
+        password: temporaryPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+          company_name: companyName
+        }
       });
 
-    if (profileError) {
-      console.error('Error creando perfil:', profileError);
-      // Intentar eliminar el usuario de auth si falló el perfil
-      try {
-        await supabase.auth.admin.deleteUser(newUser.user.id);
-      } catch (e) {
-        console.error('Error eliminando usuario tras fallo de perfil:', e);
+      if (userError) {
+        console.error('Error creando usuario auth:', userError);
+        
+        // Si el usuario ya existe en auth, intentar obtenerlo
+        if (userError.message?.includes('already been registered') || userError.code === 'email_exists') {
+          console.log('Usuario ya existe en auth, intentando obtener datos...');
+          
+          // Buscar usuario por email usando el service key
+          const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
+          
+          if (listError) {
+            throw new Error('Error buscando usuarios existentes');
+          }
+          
+          const existingUser = existingUsers.users.find(u => u.email === email);
+          if (existingUser) {
+            authUser = existingUser;
+            console.log('Usuario existente encontrado:', existingUser.id);
+          } else {
+            throw new Error('No se pudo crear ni encontrar el usuario');
+          }
+        } else {
+          throw userError;
+        }
+      } else {
+        authUser = userData.user;
+        console.log('Usuario creado exitosamente en auth:', authUser.id);
       }
-      
+    } catch (authErr: any) {
+      console.error('Error en proceso de creación de usuario:', authErr);
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Error creando perfil de usuario'
+        JSON.stringify({ 
+          success: false, 
+          error: `Error creando usuario: ${authErr.message}` 
         }),
-        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Usuario creado exitosamente:', newUser.user.id);
+    if (!authUser) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No se pudo crear o encontrar el usuario' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Intentar enviar email con credenciales
+    // Crear o actualizar perfil en la tabla profiles
+    try {
+      const { data: profileData, error: profileInsertError } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: authUser.id,
+          full_name: fullName,
+          company_name: companyName,
+          industry: industry,
+          role: 'client',
+          is_active: true,
+          accepted_terms: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (profileInsertError) {
+        console.error('Error creando perfil:', profileInsertError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Error creando perfil de usuario' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('Perfil creado/actualizado exitosamente:', profileData);
+
+    } catch (profileErr: any) {
+      console.error('Error en creación de perfil:', profileErr);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Error creando perfil de usuario' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Intentar enviar email de bienvenida (opcional)
     let emailSent = false;
     let emailError = null;
 
-    if (resendApiKey) {
-      try {
-        const loginUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/supabase', '') || 'https://dabcbcd3-532f-4a38-9ed3-ee8822d33b3e.lovableproject.com'}/login`;
-        
-        const emailResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'NORDATA.AI <jorgeemiliano@nordataai.com>',
-            to: [email],
-            subject: companyName ? `Acceso a NORDATA.AI para ${companyName}` : 'Acceso a NORDATA.AI',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h1 style="color: #8B5CF6;">¡Bienvenido a NORDATA.AI!</h1>
-                <p>Hola ${fullName},</p>
-                <p>Se ha creado tu cuenta en NORDATA.AI. Aquí están tus credenciales de acceso:</p>
-                
-                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                  <p><strong>Email:</strong> ${email}</p>
-                  <p><strong>Contraseña temporal:</strong> ${temporaryPassword}</p>
-                  <p><strong>URL de acceso:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
-                </div>
-                
-                <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <p><strong>⚠️ Importante:</strong></p>
-                  <ul>
-                    <li>Deberás cambiar tu contraseña en el primer acceso</li>
-                    <li>Esta contraseña temporal expira en 7 días</li>
-                    <li>Completa tu perfil una vez dentro de la plataforma</li>
-                  </ul>
-                </div>
-                
-                <h3>¿Qué puedes hacer en NORDATA.AI?</h3>
-                <ul>
-                  <li>📊 Cargar y analizar archivos de datos</li>
-                  <li>🤖 Interactuar con nuestro chatbot especializado</li>
-                  <li>📈 Generar insights automáticos</li>
-                  <li>💼 Gestionar tus datos empresariales</li>
-                </ul>
-                
-                <p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
-                <p>¡Bienvenido al futuro del análisis de datos!</p>
-                <p><strong>El equipo de NORDATA.AI</strong></p>
-              </div>
-            `,
-          }),
-        });
-
-        if (emailResponse.ok) {
-          emailSent = true;
-          console.log('Email enviado exitosamente');
-        } else {
-          const errorData = await emailResponse.json();
-          emailError = errorData.message || 'Error desconocido al enviar email';
-          console.error('Error enviando email:', errorData);
+    try {
+      const { error: emailErr } = await supabase.auth.admin.inviteUserByEmail(email, {
+        data: {
+          full_name: fullName,
+          company_name: companyName,
+          temporary_password: temporaryPassword
         }
-      } catch (error) {
-        emailError = error.message;
-        console.error('Error enviando email:', error);
+      });
+      
+      if (emailErr) {
+        emailError = emailErr.message;
+        console.log('Email no enviado:', emailErr.message);
+      } else {
+        emailSent = true;
+        console.log('Email de bienvenida enviado exitosamente');
       }
-    } else {
-      emailError = 'RESEND_API_KEY no configurada';
-      console.log('RESEND_API_KEY no encontrada, saltando envío de email');
+    } catch (emailException: any) {
+      emailError = emailException.message;
+      console.log('Excepción al enviar email:', emailException.message);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
+        user_id: authUser.id,
         message: 'Usuario creado exitosamente',
-        user_id: newUser.user.id,
-        emailSent: emailSent,
-        emailError: emailError
+        emailSent,
+        emailError,
+        credentials: {
+          email: email,
+          temporaryPassword: temporaryPassword
+        }
       }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
 
-  } catch (error) {
-    console.error('Error general:', error);
+  } catch (error: any) {
+    console.error('Error general en admin-create-user:', error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Error interno del servidor'
+        error: error.message || 'Internal server error'
       }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
