@@ -15,6 +15,7 @@ export interface AdminUser {
   failed_files: number;
   last_upload: string | null;
   total_chat_messages: number;
+  industry?: string;
 }
 
 export const useMasterAuth = () => {
@@ -24,18 +25,27 @@ export const useMasterAuth = () => {
     try {
       setLoading(true);
       
-      const { data: users, error: usersError } = await supabase
-        .rpc('get_admin_dashboard');
+      console.log('Fetching admin data...');
+      
+      // Usar la nueva función edge para obtener usuarios
+      const { data, error } = await supabase.functions.invoke('admin-get-users');
 
-      if (usersError) {
-        console.error('Error from RPC:', usersError);
+      if (error) {
+        console.error('Error calling admin-get-users function:', error);
         toast.error('Error al cargar datos del panel admin');
         return { users: [] };
       }
 
-      return {
-        users: users || []
-      };
+      if (data && data.success) {
+        console.log(`Successfully loaded ${data.users.length} users`);
+        return {
+          users: data.users || []
+        };
+      } else {
+        console.error('Function returned error:', data);
+        toast.error(data.error || 'Error al cargar datos del panel admin');
+        return { users: [] };
+      }
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
       toast.error('Error al cargar datos del panel admin');
