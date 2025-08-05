@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +15,7 @@ const InviteRegister: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -40,16 +41,16 @@ const InviteRegister: React.FC = () => {
 
     setLoading(true);
     try {
-      const { error } = await signUp(email, password, token);
+      const result = await register(email, password, token);
       
-      if (error) {
-        toast.error(error.message || t('auth.registerError'));
+      if (result.error) {
+        toast.error(result.error || t('auth.registerError'));
       } else {
         toast.success(t('auth.registerSuccess'));
         navigate('/dashboard');
       }
-    } catch (error) {
-      toast.error(t('auth.registerError'));
+    } catch (error: any) {
+      toast.error(error.message || t('auth.registerError'));
     } finally {
       setLoading(false);
     }

@@ -19,7 +19,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { signIn, user } = useAuth();
+  const { login, user } = useAuth();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -39,10 +39,10 @@ const Login = () => {
         return;
       }
 
-      const { error } = await signIn(email, password);
+      const result = await login(email, password);
       
-      if (error) {
-        setError(error.message || t('auth.loginError'));
+      if (result.error) {
+        setError(result.error || t('auth.loginError'));
       } else {
         toast.success(t('auth.loginSuccess'));
         navigate('/dashboard');

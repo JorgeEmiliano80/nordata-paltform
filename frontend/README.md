@@ -1,84 +1,63 @@
 
-# Frontend - NORDATA.AI Platform
+# NordataPlatform Frontend
 
-Este directorio contiene toda la aplicación frontend de la plataforma NORDATA.AI.
+Frontend desarrollado en React + TypeScript + Vite para la plataforma de análisis de datos.
 
-## Estructura del Proyecto
+## Estructura del proyecto
 
-### Páginas Principales (`src/pages/`)
-- `Landing.tsx` - Página de inicio
-- `Login.tsx` - Página de autenticación
-- `Register.tsx` - Registro de usuarios
-- `Dashboard.tsx` - Dashboard principal
-- `Upload.tsx` - Subida de archivos
-- `Settings.tsx` - Configuraciones de usuario
-- `NotFound.tsx` - Página 404
-- `Unauthorized.tsx` - Acceso denegado
+```
+frontend/
+├── src/
+│   ├── components/        # Componentes reutilizables
+│   ├── pages/            # Páginas de la aplicación
+│   ├── services/         # Servicios para APIs
+│   ├── hooks/            # Custom hooks
+│   ├── context/          # Context providers
+│   ├── config/           # Configuraciones
+│   ├── lib/              # Utilidades
+│   └── styles/           # Archivos CSS globales
+├── public/               # Archivos estáticos
+└── dist/                 # Build de producción
+```
 
-### Componentes (`src/components/`)
+## Instalación
 
-#### UI Components (`src/components/ui/`)
-- Componentes base de Shadcn/ui
-- `button.tsx`, `card.tsx`, `input.tsx`, etc.
+```bash
+cd frontend
+npm install
+```
 
-#### Componentes de Negocio
-- `Navbar.tsx` - Navegación principal
-- `FileUpload.tsx` - Subida de archivos
-- `FilesList.tsx` - Lista de archivos
-- `PipelinesList.tsx` - Lista de pipelines
+## Desarrollo
 
-#### Componentes de Admin (`src/components/admin/`)
-- `AdminDashboard.tsx` - Dashboard administrativo
-- `AdminUserInviteDialog.tsx` - Diálogo de invitación
-- `AdminUsersList.tsx` - Lista de usuarios
+```bash
+npm run dev
+```
 
-#### Analytics (`src/components/analytics/`)
-- `BehaviorAnalyticsDashboard.tsx`
-- `ClientSegmentsDashboard.tsx`
-- `DataFlowDashboard.tsx`
-- `FinancialDashboard.tsx`
-- `PerformanceDashboard.tsx`
+El frontend se ejecutará en http://localhost:3000
 
-#### Tracking (`src/components/tracking/`)
-- `TrackingProvider.tsx` - Provider de tracking
-- `TrackedButton.tsx` - Botón con tracking
-- `TrackedInput.tsx` - Input con tracking
-- `TrackedTabs.tsx` - Tabs con tracking
+## Build
 
-### Hooks Personalizados (`src/hooks/`)
-- `useAuth.ts` - Autenticación
-- `useAdmin.ts` - Funciones de admin
-- `useFiles.ts` - Gestión de archivos
-- `useUpload.ts` - Subida de archivos
-- `useAnalytics.ts` - Analytics
-- `useBehaviorTracking.ts` - Tracking de comportamiento
-- `useCustomerSegmentation.ts` - Segmentación
+```bash
+npm run build
+```
 
-### Contextos (`src/context/`)
-- `AuthContext.tsx` - Contexto de autenticación
-- `CurrencyContext.tsx` - Contexto de monedas
+## Variables de entorno
 
-### Servicios (`src/services/`)
-- `fileProcessingService.ts` - Procesamiento de archivos
-- `analyticsService.ts` - Servicios de analytics
+Copia `.env.example` a `.env` y configura:
 
-### Utilidades (`src/lib/`)
-- `utils.ts` - Utilidades generales
-- `supabase.ts` - Cliente de Supabase
+- `VITE_API_BASE_URL`: URL del backend API
+- `VITE_APP_TITLE`: Título de la aplicación
+- `VITE_APP_DESCRIPTION`: Descripción de la aplicación
 
-## Tecnologías Utilizadas
-- **React 18** - Framework principal
-- **TypeScript** - Tipado estático
-- **Vite** - Build tool
-- **Tailwind CSS** - Estilos
-- **Shadcn/ui** - Componentes UI
-- **React Router** - Navegación
-- **React Query** - Estado del servidor
-- **React Hook Form** - Formularios
-- **Recharts** - Gráficos
-- **i18next** - Internacionalización
+## Tecnologías
 
-## Configuración
-- `tailwind.config.ts` - Configuración de Tailwind
-- `vite.config.ts` - Configuración de Vite
-- `tsconfig.json` - Configuración de TypeScript
+- React 18
+- TypeScript
+- Vite
+- TailwindCSS
+- React Router
+- React Query
+- React i18next
+- Lucide React (iconos)
+- Recharts (gráficos)
+- Sonner (notificaciones)

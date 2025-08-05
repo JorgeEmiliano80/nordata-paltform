@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +14,7 @@ const Register: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -32,16 +33,16 @@ const Register: React.FC = () => {
 
     setLoading(true);
     try {
-      const { error } = await signUp(email, password);
+      const result = await register(email, password);
       
-      if (error) {
-        toast.error(error.message || t('auth.registerError'));
+      if (result.error) {
+        toast.error(result.error || t('auth.registerError'));
       } else {
         toast.success(t('auth.registerSuccess'));
         navigate('/login');
       }
-    } catch (error) {
-      toast.error(t('auth.registerError'));
+    } catch (error: any) {
+      toast.error(error.message || t('auth.registerError'));
     } finally {
       setLoading(false);
     }
