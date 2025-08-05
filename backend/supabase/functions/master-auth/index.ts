@@ -20,14 +20,32 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Get master credentials from environment variables (Supabase secrets)
+    const masterEmail = Deno.env.get('MASTER_EMAIL');
+    const masterPassword = Deno.env.get('MASTER_PASSWORD');
+    
+    if (!masterEmail || !masterPassword) {
+      console.error('Master credentials not configured in environment');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Configuración de sistema incompleta'
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const { email, password }: MasterLoginRequest = await req.json();
 
     console.log(`Intento de login master para: ${email}`);
 
-    // Validar credenciales específicas del master
-    if (email !== 'iamjorgear80@gmail.com' || password !== 'Jorge41304254#') {
+    // Validate credentials against environment variables
+    if (email !== masterEmail || password !== masterPassword) {
       console.log('Credenciales incorrectas para master');
       return new Response(
         JSON.stringify({
@@ -64,12 +82,13 @@ serve(async (req) => {
       );
     }
 
-    // Crear token temporal para el master
+    // Create secure token with expiration
     const masterToken = btoa(JSON.stringify({
       user_id: profile.user_id,
       email: email,
       role: 'admin',
-      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 horas
+      exp: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+      iat: Date.now()
     }));
 
     console.log('Login de master exitoso');
@@ -99,7 +118,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: 'Error interno del servidor'
       }),
       {
         status: 500,

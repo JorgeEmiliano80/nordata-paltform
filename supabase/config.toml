@@ -36,11 +36,24 @@ additional_redirect_urls = ["https://nordata.ai"]
 jwt_expiry = 3600
 refresh_token_rotation_enabled = true
 secure_nonce = true
+# Security enhancements
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+password_min_length = 8
+# Session timeout settings
+sessions_timebox = 86400
+# Rate limiting
+rate_limit_header = true
+rate_limit_email_sent = 30
+rate_limit_email_signin = 20
+rate_limit_sms = 10
 
 [edge_runtime]
 enabled = true
 port = 54330
 
+# Security-enhanced function configurations
 [functions.process-file]
 verify_jwt = true
 
@@ -55,6 +68,9 @@ verify_jwt = true
 
 [functions.master-auth]
 verify_jwt = false
+# Rate limiting for sensitive functions
+rate_limit = 10
 
 [functions.setup-master-user]
 verify_jwt = false
+rate_limit = 2

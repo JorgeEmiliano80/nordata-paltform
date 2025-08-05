@@ -1,174 +1,92 @@
-
+import React from 'react';
+import { Layout } from "@/components/layout/Layout";
+import Index from "@/pages/Index";
+import Dashboard from "@/pages/Dashboard";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import Pricing from "@/pages/Pricing";
+import NotFound from "@/pages/NotFound";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
+import AdminPanel from "@/pages/AdminPanel";
+import FileUpload from "@/pages/FileUpload";
+import Chat from "@/pages/Chat";
+import Settings from "@/pages/Settings";
+import Invite from "@/pages/Invite";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
+import { useRole } from "@/hooks/useRole";
+import { useTracking } from "@/components/tracking/useTracking";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { SecurityProvider } from "@/components/SecurityProvider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import RoleProtectedRoute from "@/components/RoleProtectedRoute";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import InviteRegister from "./pages/InviteRegister";
-import Dashboard from "./pages/Dashboard";
-import Upload from "./pages/Upload";
-import Data from "./pages/Data";
-import Pipelines from "./pages/Pipelines";
-import Analytics from "./pages/Analytics";
-import Chatbot from "./pages/Chatbot";
-import AI from "./pages/AI";
-import AIAssistant from "./pages/AIAssistant";
-import Settings from "./pages/Settings";
-import Admin from "./pages/Admin";
-import AdminPanel from "./pages/AdminPanel";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import NotFound from "./pages/NotFound";
-import Customers from "./pages/Customers";
-import Insights from "./pages/Insights";
-import Unauthorized from "./pages/Unauthorized";
-import "./App.css";
-import "./lib/i18n";
+import { TrackingProvider } from "@/components/tracking/TrackingProvider";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: (failureCount, error: any) => {
-        // Don't retry on 401 (unauthorized) errors
-        if (error?.status === 401) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+const queryClient = new QueryClient();
 
-function App() {
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ThemeProvider>
+      <SecurityProvider>
+        <AuthProvider>
           <CurrencyProvider>
-            <AuthProvider>
-              <Toaster />
-              <BrowserRouter>
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/invite/:token" element={<InviteRegister />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/unauthorized" element={<Unauthorized />} />
-                  
-                  {/* Client routes (also accessible by admins) */}
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
+            <TrackingProvider>
+              <TooltipProvider>
+                <Toaster />
+                <BrowserRouter>
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/invite" element={<Invite />} />
+                    <Route path="/" element={<Index />} />
+                    
+                    {/* Protected routes */}
+                    <Route path="/dashboard" element={
+                      <ProtectedRoute>
                         <Dashboard />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/upload" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
-                        <Upload />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/data" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
-                        <Data />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/pipelines" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
-                        <Pipelines />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/insights" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
-                        <Insights />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/chatbot" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
-                        <Chatbot />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/ai" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
-                        <AI />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/ai-assistant" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
-                        <AIAssistant />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/customers" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
-                        <Customers />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/settings" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="client">
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/file-upload" element={
+                      <ProtectedRoute>
+                        <FileUpload />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/chat" element={
+                      <ProtectedRoute>
+                        <Chat />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/settings" element={
+                      <ProtectedRoute>
                         <Settings />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Admin-only routes */}
-                  <Route path="/admin" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="admin">
-                        <Admin />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/admin-panel" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="admin">
+                      </ProtectedRoute>
+                    } />
+
+                    {/* Admin routes */}
+                    <Route path="/admin" element={
+                      <AdminRoute>
                         <AdminPanel />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/analytics" element={
-                    <ProtectedRoute>
-                      <RoleProtectedRoute requiredRole="admin">
-                        <Analytics />
-                      </RoleProtectedRoute>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* 404 */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </AuthProvider>
+                      </AdminRoute>
+                    } />
+                    
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </TrackingProvider>
           </CurrencyProvider>
-        </ThemeProvider>
-      </TooltipProvider>
+        </AuthProvider>
+      </SecurityProvider>
     </QueryClientProvider>
   );
-}
+};
 
 export default App;

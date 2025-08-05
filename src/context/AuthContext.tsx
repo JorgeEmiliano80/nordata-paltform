@@ -39,39 +39,96 @@ export const useAuth = () => {
   return context;
 };
 
+// Security utility functions
+const cleanupAuthState = () => {
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  
+  // Remove from sessionStorage if in use
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
+
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const isValidPassword = (password: string): boolean => {
+  // Minimum 8 characters, at least one letter and one number
+  return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuthState();
+    let mounted = true;
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+    const initializeAuth = async () => {
+      try {
+        // Set up auth state listener first
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            if (!mounted) return;
+            
+            if (event === 'SIGNED_IN' && session?.user) {
+              // Defer user profile loading to prevent deadlocks
+              setTimeout(async () => {
+                if (mounted) {
+                  await loadUserProfile(session.user);
+                }
+              }, 0);
+            } else if (event === 'SIGNED_OUT') {
+              setUser(null);
+              cleanupAuthState();
+            }
+            
+            if (mounted) {
+              setLoading(false);
+            }
+          }
+        );
+
+        // Then check for existing session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Session check error:', error);
+          cleanupAuthState();
+        } else if (session?.user && mounted) {
           await loadUserProfile(session.user);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
         }
-        setLoading(false);
-      }
-    );
 
-    return () => subscription.unsubscribe();
+        if (mounted) {
+          setLoading(false);
+        }
+
+        return () => {
+          mounted = false;
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
-
-  const checkAuthState = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await loadUserProfile(session.user);
-      }
-    } catch (error) {
-      console.error('Auth state check failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadUserProfile = async (authUser: SupabaseUser) => {
     try {
@@ -107,22 +164,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
+      
+      // Input validation
+      if (!isValidEmail(email)) {
+        return { error: 'Email inválido' };
+      }
+      
+      if (!password || password.length < 6) {
+        return { error: 'Contraseña debe tener al menos 6 caracteres' };
+      }
+
+      // Clean up existing state before login
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.warn('Global signout failed:', err);
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.toLowerCase().trim(),
         password,
       });
 
       if (error) {
+        console.error('Login error:', error);
         return { error: error.message };
       }
 
       if (data.user) {
-        await loadUserProfile(data.user);
+        // Force page reload for clean state
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 100);
       }
 
       return {};
     } catch (error: any) {
-      return { error: error.message || 'Login failed' };
+      console.error('Login exception:', error);
+      return { error: error.message || 'Error de login' };
     } finally {
       setLoading(false);
     }
@@ -132,6 +215,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       
+      // Input validation
+      if (!isValidEmail(email)) {
+        return { error: 'Email inválido' };
+      }
+      
+      if (!isValidPassword(password)) {
+        return { error: 'Contraseña debe tener al menos 8 caracteres, incluyendo letras y números' };
+      }
+
+      // Clean up existing state
+      cleanupAuthState();
+      
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
       if (inviteToken) {
         // Handle invitation registration
         const { data: inviteData, error: inviteError } = await supabase.rpc('validate_invitation', {
@@ -139,19 +236,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (inviteError || !inviteData) {
-          return { error: 'Invalid invitation token' };
+          return { error: 'Token de invitación inválido' };
         }
 
-        // Type assertion for invite data
         const validInvite = inviteData as any;
         if (!validInvite?.valid) {
-          return { error: 'Invalid invitation token' };
+          return { error: 'Token de invitación inválido' };
         }
 
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.toLowerCase().trim(),
           password,
           options: {
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: validInvite.full_name || '',
               company_name: validInvite.company_name || '',
@@ -173,9 +270,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Regular registration
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.toLowerCase().trim(),
           password,
           options: {
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: email.split('@')[0],
             }
@@ -189,7 +287,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return {};
     } catch (error: any) {
-      return { error: error.message || 'Registration failed' };
+      console.error('Registration error:', error);
+      return { error: error.message || 'Error de registro' };
     } finally {
       setLoading(false);
     }
@@ -197,8 +296,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      // Clean up auth state first
+      cleanupAuthState();
+      
+      // Attempt global sign out
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.warn('Logout error:', err);
+      }
+      
       setUser(null);
+      
+      // Force page reload for clean state
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout failed:', error);
     }
