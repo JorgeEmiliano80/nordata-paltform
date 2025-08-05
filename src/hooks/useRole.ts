@@ -2,65 +2,37 @@
 import { useAuth } from '@/context/AuthContext';
 
 export const useRole = () => {
-  const { user, profile, isAdmin, isClient } = useAuth();
+  const { user, loading, profileLoading } = useAuth();
 
-  const hasPermission = (requiredRole: 'admin' | 'client') => {
-    if (!user || !profile) return false;
+  const hasPermission = (requiredRole: 'admin' | 'client'): boolean => {
+    if (!user) return false;
     
     if (requiredRole === 'admin') {
-      return isAdmin();
+      return user.role === 'admin';
     }
     
-    if (requiredRole === 'client') {
-      return isClient() || isAdmin(); // Admins can access client features
-    }
-    
-    return false;
+    // Clients can access client routes, admins can access both
+    return user.role === 'client' || user.role === 'admin';
   };
 
-  const canAccessRoute = (route: string) => {
-    // Admin-only routes
-    const adminRoutes = [
-      '/admin',
-      '/admin-panel',
-      '/analytics',
-      '/admin/clients',
-      '/admin/insights', 
-      '/admin/settings'
-    ];
-    
-    // Client routes (also accessible by admins)
-    const clientRoutes = [
-      '/dashboard',
-      '/upload',
-      '/data',
-      '/pipelines',
-      '/insights',
-      '/chatbot',
-      '/ai',
-      '/ai-assistant',
-      '/customers',
-      '/settings'
-    ];
-    
-    if (adminRoutes.some(adminRoute => route.startsWith(adminRoute))) {
-      return hasPermission('admin');
+  const canAccessRoute = (pathname: string): boolean => {
+    if (!user) return false;
+
+    // Admin routes - only for admins
+    if (pathname.startsWith('/admin') || pathname === '/analytics') {
+      return user.role === 'admin';
     }
-    
-    if (clientRoutes.some(clientRoute => route.startsWith(clientRoute))) {
-      return hasPermission('client');
-    }
-    
-    return true; // Public routes
+
+    // All other protected routes - accessible by both roles
+    return true;
   };
 
   return {
     user,
-    profile,
-    isAdmin: isAdmin(),
-    isClient: isClient(),
+    profile: user,
+    loading,
+    profileLoading,
     hasPermission,
     canAccessRoute,
-    role: profile?.role || null
   };
 };

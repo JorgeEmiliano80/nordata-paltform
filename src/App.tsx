@@ -32,7 +32,20 @@ import Unauthorized from "./pages/Unauthorized";
 import "./App.css";
 import "./lib/i18n";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: any) => {
+        // Don't retry on 401 (unauthorized) errors
+        if (error?.status === 401) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function App() {
   return (

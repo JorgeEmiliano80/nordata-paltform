@@ -1,60 +1,65 @@
 
 import { useState, useEffect } from 'react';
-import { useUpload } from './useUpload';
-import { useStorage } from './useStorage';
-import { useFileProcessing } from './useFileProcessing';
-import type { FileRecord } from './useUpload';
-
-export { type FileRecord } from './useUpload';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fileService, FileRecord } from '@/services/fileService';
+import { toast } from 'sonner';
 
 export const useFiles = () => {
-  const [files, setFiles] = useState<FileRecord[]>([]);
-  const { uploading, validating: uploadValidating, uploadFile } = useUpload();
-  const { loading, deleteFile, getFileInsights, fetchFiles } = useStorage();
-  const { processing, validating: processValidating, processFile } = useFileProcessing();
+  const queryClient = useQueryClient();
 
-  const refetchFiles = async () => {
-    const filesList = await fetchFiles();
-    setFiles(filesList);
-  };
+  const {
+    data: files = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['files'],
+    queryFn: fileService.getFiles,
+  });
 
-  useEffect(() => {
-    refetchFiles();
-  }, []);
+  const uploadMutation = useMutation({
+    mutationFn: fileService.uploadFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      toast.success('Archivo subido exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al subir archivo');
+    },
+  });
 
-  const handleUploadFile = async (file: File) => {
-    const result = await uploadFile(file);
-    if (result.success) {
-      await refetchFiles();
-    }
-    return result;
-  };
+  const deleteMutation = useMutation({
+    mutationFn: fileService.deleteFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      toast.success('Archivo eliminado exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al eliminar archivo');
+    },
+  });
 
-  const handleDeleteFile = async (fileId: string) => {
-    const result = await deleteFile(fileId);
-    if (result.success) {
-      await refetchFiles();
-    }
-    return result;
-  };
-
-  const handleProcessFile = async (fileId: string) => {
-    const result = await processFile(fileId);
-    if (result.success) {
-      await refetchFiles();
-    }
-    return result;
-  };
+  const processMutation = useMutation({
+    mutationFn: fileService.processFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      toast.success('Archivo enviado para procesamiento');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al procesar archivo');
+    },
+  });
 
   return {
     files,
-    loading: loading || uploading || processing,
-    uploading,
-    validating: uploadValidating || processValidating,
-    uploadFile: handleUploadFile,
-    processFile: handleProcessFile,
-    deleteFile: handleDeleteFile,
-    getFileInsights,
-    refetchFiles
+    isLoading,
+    error,
+    uploadFile: uploadMutation.mutate,
+    deleteFile: deleteMutation.mutate,
+    processFile: processMutation.mutate,
+    isUploading: uploadMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isProcessing: processMutation.isPending,
+    refetch,
   };
 };
