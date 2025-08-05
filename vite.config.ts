@@ -12,8 +12,7 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 3000,
-    // Removido el proxy ya que ahora usamos GCP Functions directamente
+    port: 8080,
   },
   build: {
     target: 'esnext',

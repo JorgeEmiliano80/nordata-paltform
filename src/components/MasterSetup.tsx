@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, CheckCircle, AlertCircle } from 'lucide-react';
-import { setupMasterUser } from '@/utils/setupMasterUser';
+import { authService } from '@/services/authService';
 
 const MasterSetup = () => {
   const [loading, setLoading] = useState(false);
@@ -15,8 +15,14 @@ const MasterSetup = () => {
     setResult(null);
     
     try {
-      const response = await setupMasterUser();
-      
+      // Crear usuario master usando el servicio de auth
+      const response = await authService.createMasterUser({
+        email: 'iamjorgear80@gmail.com',
+        password: 'Jorge41304254#',
+        full_name: 'Jorge Emiliano',
+        role: 'admin'
+      });
+
       if (response.success) {
         setResult({
           success: true,
@@ -25,7 +31,7 @@ const MasterSetup = () => {
       } else {
         setResult({
           success: false,
-          message: response.error || 'Error al configurar usuario master'
+          message: response.message || 'Error al configurar usuario master'
         });
       }
     } catch (error: any) {

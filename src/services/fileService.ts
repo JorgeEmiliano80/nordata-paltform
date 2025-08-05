@@ -1,4 +1,3 @@
-
 /**
  * Servicio de Archivos - Nueva Arquitectura GCP + Databricks
  * Migrado de Supabase a Google Cloud Storage
@@ -14,10 +13,11 @@ export interface FileRecord {
   file_type: string;
   file_size: number;
   storage_url: string;
-  status: 'uploaded' | 'processing' | 'processed' | 'error' | 'cancelled';
+  status: 'uploaded' | 'processing' | 'processed' | 'done' | 'error' | 'cancelled';
   databricks_job_id?: string;
   error_message?: string;
   uploaded_at: string;
+  created_at: string; // Agregado para compatibilidad
   processed_at?: string;
   metadata?: Record<string, any>;
 }
@@ -67,7 +67,16 @@ class FileService {
   async getFiles(): Promise<FileRecord[]> {
     try {
       const response = await this.makeRequest(API_ENDPOINTS.FILES.LIST);
-      return response.files || [];
+      
+      // Mapear los archivos para asegurar compatibilidad
+      const files = (response.files || []).map((file: any) => ({
+        ...file,
+        created_at: file.created_at || file.uploaded_at, // Compatibilidad
+        // Mapear 'done' a 'processed' para consistencia
+        status: file.status === 'done' ? 'processed' : file.status
+      }));
+      
+      return files;
     } catch (error: any) {
       console.error('Error obteniendo archivos:', error);
       throw new Error(`Error loading files: ${error.message}`);
@@ -146,7 +155,10 @@ class FileService {
       });
 
       console.log('Archivo subido exitosamente:', uploadResponse);
-      return uploadResponse.file;
+      return {
+        ...uploadResponse.file,
+        created_at: uploadResponse.file.created_at || uploadResponse.file.uploaded_at
+      };
 
     } catch (error: any) {
       console.error('Error subiendo archivo:', error);
@@ -199,7 +211,10 @@ class FileService {
         }),
       });
 
-      return response.file;
+      return {
+        ...response.file,
+        created_at: response.file.created_at || response.file.uploaded_at
+      };
 
     } catch (error: any) {
       console.error('Error procesando archivo:', error);
@@ -232,7 +247,10 @@ class FileService {
       const response = await this.makeRequest(
         `${API_ENDPOINTS.FILES.STATUS}?file_id=${fileId}`
       );
-      return response.file;
+      return {
+        ...response.file,
+        created_at: response.file.created_at || response.file.uploaded_at
+      };
     } catch (error: any) {
       console.error('Error obteniendo estado:', error);
       throw new Error(`Status check failed: ${error.message}`);
@@ -251,7 +269,7 @@ class FileService {
         by_status: {
           uploaded: files.filter(f => f.status === 'uploaded').length,
           processing: files.filter(f => f.status === 'processing').length,
-          processed: files.filter(f => f.status === 'processed').length,
+          processed: files.filter(f => f.status === 'processed' || f.status === 'done').length,
           error: files.filter(f => f.status === 'error').length,
         },
         total_size: files.reduce((sum, f) => sum + f.file_size, 0),

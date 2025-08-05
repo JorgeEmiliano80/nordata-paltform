@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,10 +17,8 @@ const FilesList: React.FC = () => {
 
   const handleDelete = async (fileId: string) => {
     try {
-      const result = await deleteFile(fileId);
-      if (result && typeof result === 'object' && 'success' in result && result.success) {
-        refetch();
-      }
+      await deleteFile(fileId);
+      refetch();
     } catch (error) {
       console.error('Error deleting file:', error);
     }
@@ -27,10 +26,8 @@ const FilesList: React.FC = () => {
 
   const handleProcess = async (fileId: string) => {
     try {
-      const result = await processFile(fileId);
-      if (result && typeof result === 'object' && 'success' in result && result.success) {
-        refetch();
-      }
+      await processFile(fileId);
+      refetch();
     } catch (error) {
       console.error('Error processing file:', error);
     }
@@ -40,6 +37,7 @@ const FilesList: React.FC = () => {
     switch (status) {
       case 'uploaded': return <Upload className="h-4 w-4 text-primary" />;
       case 'processing': return <Clock className="h-4 w-4 text-warning animate-spin" />;
+      case 'processed': return <CheckCircle className="h-4 w-4 text-success" />;
       case 'done': return <CheckCircle className="h-4 w-4 text-success" />;
       case 'error': return <AlertCircle className="h-4 w-4 text-error" />;
       default: return <FileText className="h-4 w-4 text-muted-foreground" />;
@@ -50,6 +48,7 @@ const FilesList: React.FC = () => {
     switch (status) {
       case 'uploaded': return 'bg-primary/10 text-primary';
       case 'processing': return 'bg-warning/10 text-warning';
+      case 'processed': return 'bg-success/10 text-success';
       case 'done': return 'bg-success/10 text-success';
       case 'error': return 'bg-error/10 text-error';
       default: return 'bg-muted/10 text-muted-foreground';
@@ -60,6 +59,7 @@ const FilesList: React.FC = () => {
     switch (status) {
       case 'uploaded': return 'Subido';
       case 'processing': return 'Procesando';
+      case 'processed': return 'Completado';
       case 'done': return 'Completado';
       case 'error': return 'Error';
       default: return 'Desconocido';
@@ -122,7 +122,7 @@ const FilesList: React.FC = () => {
                       <span>{formatFileSize(file.file_size)}</span>
                       <span>{file.file_type}</span>
                       <span>
-                        {format(new Date(file.created_at), 'PPp', { locale: es })}
+                        {format(new Date(file.uploaded_at), 'PPp', { locale: es })}
                       </span>
                     </div>
                     {file.error_message && (
@@ -152,7 +152,7 @@ const FilesList: React.FC = () => {
                         Procesar
                       </Button>
                     )}
-                    {file.status === 'processed' && (
+                    {(file.status === 'processed' || file.status === 'done') && (
                       <Button variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-1" />
                         Descargar

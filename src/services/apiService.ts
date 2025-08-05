@@ -1,5 +1,5 @@
 
-import { API_ENDPOINTS } from '@/config/api';
+import { API_ENDPOINTS } from '@/config/databricks';
 
 interface ApiResponse<T = any> {
   success: boolean;
