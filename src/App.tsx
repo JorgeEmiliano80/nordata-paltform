@@ -12,6 +12,7 @@ import Data from "@/pages/Data";
 import Upload from "@/pages/Upload";
 import Chatbot from "@/pages/Chatbot";
 import Customers from "@/pages/Customers";
+import Pipelines from "@/pages/Pipelines";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import { Toaster } from "@/components/ui/sonner";
@@ -75,6 +76,11 @@ const App = () => {
                     <Route path="/customers" element={
                       <ProtectedRoute>
                         <Customers />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/pipelines" element={
+                      <ProtectedRoute>
+                        <Pipelines />
                       </ProtectedRoute>
                     } />
 
