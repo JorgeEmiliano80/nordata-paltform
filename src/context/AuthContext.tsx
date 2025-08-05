@@ -138,7 +138,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           token: inviteToken
         });
 
-        if (inviteError || !inviteData?.valid) {
+        if (inviteError || !inviteData) {
+          return { error: 'Invalid invitation token' };
+        }
+
+        // Type assertion for invite data
+        const validInvite = inviteData as any;
+        if (!validInvite?.valid) {
           return { error: 'Invalid invitation token' };
         }
 
@@ -147,9 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           password,
           options: {
             data: {
-              full_name: inviteData.full_name,
-              company_name: inviteData.company_name,
-              industry: inviteData.industry,
+              full_name: validInvite.full_name || '',
+              company_name: validInvite.company_name || '',
+              industry: validInvite.industry || '',
             }
           }
         });
