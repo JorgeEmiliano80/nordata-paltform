@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, FileText, Trash2, Loader2 } from 'lucide-react';
+import { Send, Bot, User, FileText, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { useChatbot } from '@/hooks/useChatbot';
 import { useFiles } from '@/hooks/useFiles';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
@@ -21,13 +21,17 @@ const ChatInterface: React.FC = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log('ChatInterface montado, cargando historial...');
     fetchChatHistory(selectedFile || undefined);
   }, [selectedFile]);
 
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
+    // Scroll al final cuando llegan nuevos mensajes
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     }
   }, [messages]);
 
@@ -38,12 +42,19 @@ const ChatInterface: React.FC = () => {
     const messageToSend = inputMessage.trim();
     setInputMessage('');
 
+    console.log('Enviando mensaje desde ChatInterface:', messageToSend);
+
     // Track chat message
-    trackChatMessage(messageToSend, selectedFile || undefined);
+    try {
+      trackChatMessage(messageToSend, selectedFile || undefined);
+    } catch (error) {
+      console.error('Error tracking message:', error);
+    }
 
     const result = await sendMessage(messageToSend, selectedFile || undefined);
     
     if (!result.success) {
+      console.log('Error enviando mensaje, restaurando input');
       setInputMessage(messageToSend); // Restore message on error
     }
   };
@@ -53,7 +64,15 @@ const ChatInterface: React.FC = () => {
       return;
     }
 
-    await clearHistory(selectedFile || undefined);
+    const result = await clearHistory(selectedFile || undefined);
+    if (result.success) {
+      console.log('Historial limpiado exitosamente');
+    }
+  };
+
+  const handleRefreshHistory = () => {
+    console.log('Refrescando historial de chat...');
+    fetchChatHistory(selectedFile || undefined);
   };
 
   const getMessageTime = (dateString: string) => {
@@ -75,6 +94,10 @@ const ChatInterface: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefreshHistory}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refrescar
+          </Button>
           {messages.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleClearHistory}>
               <Trash2 className="h-4 w-4 mr-2" />
@@ -105,7 +128,7 @@ const ChatInterface: React.FC = () => {
                       <FileText className="h-4 w-4" />
                       <span>{file.file_name}</span>
                       <Badge variant="secondary" className="text-xs">
-                        {file.status === 'processed' ? 'Procesado' : file.status}
+                        Procesado
                       </Badge>
                     </div>
                   </SelectItem>
@@ -144,9 +167,19 @@ const ChatInterface: React.FC = () => {
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Bot className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">¡Hola! Soy tu asistente IA</h3>
-                  <p className="text-muted-foreground max-w-md">
-                    Puedo ayudarte a analizar tus datos, responder preguntas sobre tus archivos procesados y proporcionarte insights valiosos.
-                  </p>
+                  <div className="text-muted-foreground max-w-md space-y-2">
+                    <p>
+                      Puedo ayudarte a analizar tus datos, responder preguntas sobre tus archivos procesados y proporcionarte insights valiosos.
+                    </p>
+                    <div className="mt-4 text-sm">
+                      <p className="font-medium mb-2">Prueba preguntándome:</p>
+                      <ul className="text-left space-y-1">
+                        <li>• "¿Cómo funciona el procesamiento de datos?"</li>
+                        <li>• "¿Qué insights puedes generar?"</li>
+                        <li>• "Ayúdame con mi dashboard"</li>
+                      </ul>
+                    </div>
+                  </div>
                   {selectedFile && (
                     <Badge className="mt-4">
                       Contexto: {processedFiles.find(f => f.id === selectedFile)?.file_name}
@@ -162,7 +195,7 @@ const ChatInterface: React.FC = () => {
                     }`}
                   >
                     <Avatar className="w-8 h-8">
-                      <AvatarFallback>
+                      <AvatarFallback className={message.is_user_message ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
                         {message.is_user_message ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                       </AvatarFallback>
                     </Avatar>
@@ -174,7 +207,7 @@ const ChatInterface: React.FC = () => {
                             : 'bg-muted'
                         }`}
                       >
-                        <p className="text-sm">
+                        <p className="text-sm whitespace-pre-wrap">
                           {message.is_user_message ? message.message : (message.response || message.message)}
                         </p>
                       </div>
@@ -189,7 +222,7 @@ const ChatInterface: React.FC = () => {
               {sending && (
                 <div className="flex items-start gap-3">
                   <Avatar className="w-8 h-8">
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-muted">
                       <Bot className="w-4 h-4" />
                     </AvatarFallback>
                   </Avatar>

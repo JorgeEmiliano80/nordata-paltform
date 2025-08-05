@@ -24,7 +24,7 @@ export const useChatbot = () => {
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Usuario no autenticado');
+        console.log('Usuario no autenticado');
         return;
       }
 
@@ -36,20 +36,21 @@ export const useChatbot = () => {
 
       if (fileId) {
         query = query.eq('file_id', fileId);
+      } else {
+        query = query.is('file_id', null);
       }
 
       const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching chat history:', error);
-        toast.error('Error al cargar historial de chat');
         return;
       }
 
+      console.log('Chat history loaded:', data?.length || 0, 'messages');
       setMessages(data || []);
     } catch (error) {
       console.error('Error fetching chat history:', error);
-      toast.error('Error al cargar historial de chat');
     } finally {
       setLoading(false);
     }
@@ -58,6 +59,7 @@ export const useChatbot = () => {
   const sendMessage = async (message: string, fileId?: string) => {
     try {
       setSending(true);
+      console.log('Enviando mensaje:', message);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -65,8 +67,21 @@ export const useChatbot = () => {
         return { success: false };
       }
 
-      // Guardar mensaje del usuario
-      const { data: userMessage, error: userError } = await supabase
+      // Crear mensaje del usuario
+      const userMessage: ChatMessage = {
+        id: `temp-${Date.now()}`,
+        user_id: user.id,
+        message,
+        file_id: fileId,
+        is_user_message: true,
+        created_at: new Date().toISOString()
+      };
+
+      // Actualizar mensajes localmente primero
+      setMessages(prev => [...prev, userMessage]);
+
+      // Guardar mensaje del usuario en la base de datos
+      const { data: savedUserMessage, error: userError } = await supabase
         .from('chat_history')
         .insert({
           user_id: user.id,
@@ -83,10 +98,13 @@ export const useChatbot = () => {
         return { success: false };
       }
 
-      // Actualizar mensajes localmente
-      setMessages(prev => [...prev, userMessage]);
+      // Actualizar el mensaje temporal con el ID real
+      setMessages(prev => prev.map(msg => 
+        msg.id === userMessage.id ? savedUserMessage : msg
+      ));
 
       // Llamar al chatbot
+      console.log('Llamando al chatbot...');
       const { data: botResponse, error: botError } = await supabase.functions.invoke('chatbot', {
         body: {
           message,
@@ -98,30 +116,54 @@ export const useChatbot = () => {
       if (botError) {
         console.error('Error calling chatbot:', botError);
         toast.error('Error al obtener respuesta del chatbot');
+        
+        // Crear respuesta de error local
+        const errorMessage: ChatMessage = {
+          id: `error-${Date.now()}`,
+          user_id: user.id,
+          message: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+          is_user_message: false,
+          created_at: new Date().toISOString()
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
         return { success: false };
       }
 
+      console.log('Respuesta del chatbot:', botResponse);
+
       // Guardar respuesta del bot
+      const botMessageText = botResponse?.response || 'Lo siento, no pude generar una respuesta.';
+      
       const { data: botMessage, error: botSaveError } = await supabase
         .from('chat_history')
         .insert({
           user_id: user.id,
-          message: botResponse.response || 'Lo siento, no pude generar una respuesta.',
+          message: botMessageText,
           file_id: fileId,
           is_user_message: false,
-          response: botResponse.response
+          response: botMessageText
         })
         .select()
         .single();
 
       if (botSaveError) {
         console.error('Error saving bot response:', botSaveError);
-        toast.error('Error al guardar respuesta del chatbot');
-        return { success: false };
+        // Mostrar respuesta aunque no se guarde
+        const localBotMessage: ChatMessage = {
+          id: `bot-${Date.now()}`,
+          user_id: user.id,
+          message: botMessageText,
+          response: botMessageText,
+          is_user_message: false,
+          created_at: new Date().toISOString()
+        };
+        
+        setMessages(prev => [...prev, localBotMessage]);
+      } else {
+        // Actualizar con el mensaje guardado
+        setMessages(prev => [...prev, botMessage]);
       }
-
-      // Actualizar mensajes localmente
-      setMessages(prev => [...prev, botMessage]);
 
       return { success: true };
     } catch (error) {
@@ -148,6 +190,8 @@ export const useChatbot = () => {
 
       if (fileId) {
         query = query.eq('file_id', fileId);
+      } else {
+        query = query.is('file_id', null);
       }
 
       const { error } = await query;

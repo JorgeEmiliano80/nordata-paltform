@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -19,34 +20,84 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Chatbot function called');
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verificar autenticación
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('Token de autorización requerido');
+      console.log('No authorization header');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Token de autorización requerido',
+          response: 'Lo siento, necesitas estar autenticado para usar el chatbot.'
+        }),
+        {
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      throw new Error('Token inválido');
+      console.log('Invalid token:', authError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Token inválido',
+          response: 'Lo siento, tu sesión ha expirado. Por favor, inicia sesión de nuevo.'
+        }),
+        {
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
     }
 
     const { message, fileId, userId }: ChatbotRequest = await req.json();
 
     if (!message || !userId) {
-      throw new Error('Mensaje y usuario requeridos');
+      console.log('Missing required fields');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Mensaje y usuario requeridos',
+          response: 'Lo siento, hubo un error en la solicitud. Por favor, intenta de nuevo.'
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
     }
 
-    console.log(`Procesando mensaje del chatbot para usuario: ${userId}`);
+    console.log(`Procesando mensaje del chatbot para usuario: ${userId}, mensaje: "${message}"`);
 
     // Obtener contexto del archivo si se proporciona
     let fileContext = '';
     if (fileId) {
+      console.log(`Obteniendo contexto del archivo: ${fileId}`);
       const { data: file, error: fileError } = await supabase
         .from('files')
         .select('file_name, metadata')
@@ -56,6 +107,7 @@ serve(async (req) => {
 
       if (!fileError && file) {
         fileContext = `Archivo: ${file.file_name}\n`;
+        console.log(`Archivo encontrado: ${file.file_name}`);
         
         // Obtener insights del archivo
         const { data: insights, error: insightsError } = await supabase
@@ -69,6 +121,7 @@ serve(async (req) => {
           insights.forEach((insight) => {
             fileContext += `- ${insight.title}: ${insight.description}\n`;
           });
+          console.log(`${insights.length} insights encontrados`);
         }
       }
     }
@@ -88,13 +141,16 @@ serve(async (req) => {
         if (msg.is_user_message) {
           conversationContext += `Usuario: ${msg.message}\n`;
         } else {
-          conversationContext += `Asistente: ${msg.response}\n`;
+          conversationContext += `Asistente: ${msg.response || msg.message}\n`;
         }
       });
+      console.log(`Historial de chat cargado: ${chatHistory.length} mensajes`);
     }
 
-    // Generar respuesta del chatbot (simulada)
+    // Generar respuesta del chatbot
+    console.log('Generando respuesta del chatbot...');
     const response = await generateChatbotResponse(message, fileContext, conversationContext);
+    console.log('Respuesta generada:', response);
 
     return new Response(
       JSON.stringify({
@@ -133,35 +189,45 @@ serve(async (req) => {
 
 async function generateChatbotResponse(message: string, fileContext: string, conversationContext: string): Promise<string> {
   // Simular procesamiento de IA
+  console.log('Simulando procesamiento de IA...');
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   const lowerMessage = message.toLowerCase();
 
-  // Respuestas basadas en contexto
-  if (fileContext && lowerMessage.includes('archivo')) {
-    return `Veo que estás preguntando sobre tu archivo. ${fileContext}\n\n¿Hay algo específico que te gustaría saber sobre los datos o insights disponibles?`;
+  // Respuestas basadas en contexto de archivo
+  if (fileContext && (lowerMessage.includes('archivo') || lowerMessage.includes('datos') || lowerMessage.includes('información'))) {
+    return `Basándome en tu archivo:\n\n${fileContext}\n¿Hay algo específico que te gustaría saber sobre los datos o insights disponibles?`;
   }
 
-  if (lowerMessage.includes('insights') || lowerMessage.includes('resultados')) {
-    return 'Los insights son análisis automatizados que se generan después del procesamiento de tus datos. Estos pueden incluir tendencias, anomalías, patrones y resúmenes estadísticos. ¿Te gustaría saber más sobre algún tipo específico de insight?';
+  // Respuestas temáticas
+  if (lowerMessage.includes('insights') || lowerMessage.includes('resultados') || lowerMessage.includes('análisis')) {
+    return 'Los insights son análisis automatizados que se generan después del procesamiento de tus datos. Estos pueden incluir:\n\n• Tendencias y patrones\n• Anomalías detectadas\n• Resúmenes estadísticos\n• Correlaciones importantes\n\n¿Te gustaría saber más sobre algún tipo específico de insight?';
   }
 
-  if (lowerMessage.includes('procesar') || lowerMessage.includes('processing')) {
-    return 'El procesamiento de archivos se realiza a través de nuestra integración con Databricks. Una vez que subes un archivo, puedes enviarlo a procesamiento haciendo clic en el botón "Procesar". El sistema analizará tus datos y generará insights automatizados.';
+  if (lowerMessage.includes('procesar') || lowerMessage.includes('processing') || lowerMessage.includes('subir')) {
+    return 'Para procesar archivos en nuestra plataforma:\n\n1. **Subir archivo**: Ve a la sección "Subir Archivo" y arrastra tu archivo CSV, JSON o XLSX\n2. **Procesamiento**: Una vez subido, haz clic en "Procesar" para iniciar el análisis\n3. **Insights**: El sistema analizará automáticamente tus datos usando Databricks\n4. **Resultados**: Podrás ver los insights generados en tu dashboard\n\n¿Necesitas ayuda con algún paso específico?';
   }
 
-  if (lowerMessage.includes('subir') || lowerMessage.includes('upload')) {
-    return 'Puedes subir archivos en formato CSV, JSON o XLSX. Simplemente ve a la sección de "Subir Archivo" y arrastra tu archivo o haz clic para seleccionarlo. El archivo se guardará de forma segura y estará listo para procesamiento.';
+  if (lowerMessage.includes('chatbot') || lowerMessage.includes('asistente') || lowerMessage.includes('ayuda')) {
+    return '¡Hola! Soy tu asistente de análisis de datos. Puedo ayudarte con:\n\n🔍 **Análisis de datos**: Interpretar insights y resultados\n📊 **Procesamiento**: Guiarte en la subida y procesamiento de archivos\n💡 **Recomendaciones**: Sugerir mejores prácticas para tu análisis\n🔧 **Navegación**: Ayudarte a usar la plataforma\n\n¿En qué te puedo ayudar específicamente hoy?';
   }
 
-  if (lowerMessage.includes('ayuda') || lowerMessage.includes('help')) {
-    return 'Estoy aquí para ayudarte con:\n- Subida y procesamiento de archivos\n- Interpretación de insights\n- Navegación por la plataforma\n- Preguntas sobre tus datos\n\n¿En qué te puedo ayudar específicamente?';
+  if (lowerMessage.includes('dashboard') || lowerMessage.includes('panel') || lowerMessage.includes('visualiz')) {
+    return 'El dashboard te permite visualizar y analizar tus datos de diferentes formas:\n\n📈 **Analytics**: Métricas y KPIs principales\n👥 **Clientes**: Segmentación y análisis de comportamiento\n💰 **Finanzas**: Análisis de ingresos y costos\n📊 **Performance**: Indicadores de rendimiento\n\n¿Qué sección del dashboard te interesa más?';
   }
 
-  if (lowerMessage.includes('hola') || lowerMessage.includes('hello')) {
-    return '¡Hola! Soy tu asistente de análisis de datos. Puedo ayudarte con el procesamiento de archivos, interpretación de insights y responder preguntas sobre tus datos. ¿En qué puedo ayudarte hoy?';
+  if (lowerMessage.includes('databricks') || lowerMessage.includes('integración')) {
+    return 'Nuestra integración con Databricks permite:\n\n⚡ **Procesamiento escalable**: Análisis de grandes volúmenes de datos\n🤖 **Machine Learning**: Algoritmos avanzados de análisis\n🔄 **Automatización**: Pipelines de datos automáticos\n📊 **Insights avanzados**: Análisis predictivos y descriptivos\n\nTodos los procesamientos se realizan de forma segura en la nube.';
   }
 
-  // Respuesta genérica
-  return 'Entiendo tu pregunta. Como asistente de análisis de datos, puedo ayudarte con el procesamiento de archivos, interpretación de insights y navegación por la plataforma. ¿Podrías ser más específico sobre lo que necesitas?';
+  if (lowerMessage.includes('hola') || lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+    return '¡Hola! 👋 Bienvenido/a a tu asistente de análisis de datos.\n\nEstoy aquí para ayudarte a sacar el máximo provecho de tus datos. Puedo asistirte con análisis, procesamiento de archivos, interpretación de insights y navegación por la plataforma.\n\n¿En qué puedo ayudarte hoy?';
+  }
+
+  if (lowerMessage.includes('gracias') || lowerMessage.includes('thanks')) {
+    return '¡De nada! 😊 Me alegra poder ayudarte. Si tienes más preguntas sobre tus datos o necesitas ayuda con alguna funcionalidad de la plataforma, no dudes en preguntarme.\n\n¿Hay algo más en lo que pueda asistirte?';
+  }
+
+  // Respuesta genérica mejorada
+  return `Entiendo tu consulta sobre "${message}".\n\nComo asistente de análisis de datos, puedo ayudarte con:\n\n• **Análisis de datos** y interpretación de resultados\n• **Procesamiento de archivos** (CSV, JSON, XLSX)\n• **Navegación** por las funcionalidades de la plataforma\n• **Insights** y recomendaciones basadas en tus datos\n\n¿Podrías ser más específico sobre lo que necesitas? Así podré darte una respuesta más precisa y útil.`;
 }
