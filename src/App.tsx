@@ -26,10 +26,10 @@ const App = () => {
       <SecurityProvider>
         <AuthProvider>
           <CurrencyProvider>
-            <TrackingProvider module="main">
-              <TooltipProvider>
-                <Toaster />
-                <BrowserRouter>
+            <TooltipProvider>
+              <Toaster />
+              <BrowserRouter>
+                <TrackingProvider module="main">
                   <Routes>
                     {/* Public routes */}
                     <Route path="/login" element={<Login />} />
@@ -57,9 +57,9 @@ const App = () => {
                     
                     <Route path="*" element={<NotFound />} />
                   </Routes>
-                </BrowserRouter>
-              </TooltipProvider>
-            </TrackingProvider>
+                </TrackingProvider>
+              </BrowserRouter>
+            </TooltipProvider>
           </CurrencyProvider>
         </AuthProvider>
       </SecurityProvider>
