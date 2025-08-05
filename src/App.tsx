@@ -7,6 +7,11 @@ import Register from "@/pages/Register";
 import NotFound from "@/pages/NotFound";
 import AdminPanel from "@/pages/AdminPanel";
 import Settings from "@/pages/Settings";
+import Analytics from "@/pages/Analytics";
+import Data from "@/pages/Data";
+import Upload from "@/pages/Upload";
+import Chatbot from "@/pages/Chatbot";
+import Customers from "@/pages/Customers";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import { Toaster } from "@/components/ui/sonner";
@@ -45,6 +50,31 @@ const App = () => {
                     <Route path="/settings" element={
                       <ProtectedRoute>
                         <Settings />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/analytics" element={
+                      <ProtectedRoute>
+                        <Analytics />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/data" element={
+                      <ProtectedRoute>
+                        <Data />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/upload" element={
+                      <ProtectedRoute>
+                        <Upload />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/chatbot" element={
+                      <ProtectedRoute>
+                        <Chatbot />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/customers" element={
+                      <ProtectedRoute>
+                        <Customers />
                       </ProtectedRoute>
                     } />
 
