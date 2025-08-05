@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -22,7 +23,6 @@ import AIAssistant from "./pages/AIAssistant";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import AdminPanel from "./pages/AdminPanel";
-import Landing from "./pages/Landing";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 import Customers from "./pages/Customers";
@@ -61,7 +61,6 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/invite/:token" element={<InviteRegister />} />
-                  <Route path="/landing" element={<Landing />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/unauthorized" element={<Unauthorized />} />
                   
