@@ -63,7 +63,7 @@ const ChatInterface: React.FC = () => {
     });
   };
 
-  const processedFiles = files.filter(file => file.status === 'done');
+  const processedFiles = files.filter(file => file.status === 'processed');
 
   return (
     <div className="space-y-6">
@@ -105,7 +105,7 @@ const ChatInterface: React.FC = () => {
                       <FileText className="h-4 w-4" />
                       <span>{file.file_name}</span>
                       <Badge variant="secondary" className="text-xs">
-                        {file.status === 'done' ? 'Procesado' : file.status}
+                        {file.status === 'processed' ? 'Procesado' : file.status}
                       </Badge>
                     </div>
                   </SelectItem>

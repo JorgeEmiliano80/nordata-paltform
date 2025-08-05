@@ -47,7 +47,7 @@ const transformUser = (authUser: AuthUser): User => ({
   full_name: authUser.full_name,
   role: authUser.role,
   company_name: authUser.company_name,
-  industry: authUser.industry,
+  industry: undefined, // Set to undefined since AuthUser doesn't have this field
   is_active: true, // Default to true since backend doesn't return this field
   created_at: authUser.created_at,
   updated_at: authUser.updated_at,
