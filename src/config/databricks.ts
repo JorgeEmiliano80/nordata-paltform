@@ -54,7 +54,9 @@ export const API_ENDPOINTS = {
     CLUSTERS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-clusters`,
     WAREHOUSES: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-warehouses`,
     EXECUTE_QUERY: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-query`,
-    JOB_STATUS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-job-status`
+    JOB_STATUS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-job-status`,
+    SUBMIT_JOB: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-submit-job`,
+    CANCEL_JOB: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-cancel-job`
   },
 
   // Administración
@@ -68,6 +70,13 @@ export const API_ENDPOINTS = {
   CHATBOT: {
     CHAT: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/chatbot-message`,
     HISTORY: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/chatbot-history`
+  },
+
+  // Analytics
+  ANALYTICS: {
+    INSIGHTS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/analytics-insights`,
+    REPORTS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/analytics-reports`,
+    METRICS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/analytics-metrics`
   }
 };
 
