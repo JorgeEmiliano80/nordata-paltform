@@ -1,16 +1,29 @@
 
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * Servicio de Autenticación - Nueva Arquitectura GCP
+ * Migrado de Supabase a Google Cloud Functions + Firebase Auth
+ */
+
+import { API_ENDPOINTS } from '@/config/databricks';
 
 export interface User {
   id: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'client';
   company_name?: string;
   industry?: string;
+  role: 'admin' | 'client';
   is_active: boolean;
   created_at: string;
-  updated_at: string;
+  last_login_at?: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  user?: User;
+  token?: string;
+  refresh_token?: string;
+  message?: string;
 }
 
 export interface LoginCredentials {
@@ -23,179 +36,189 @@ export interface RegisterData {
   password: string;
   full_name: string;
   company_name?: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-  refresh_token: string;
+  industry?: string;
 }
 
 class AuthService {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: credentials.email,
-      password: credentials.password,
-    });
+  private token: string | null = null;
+  private refreshToken: string | null = null;
 
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    // Get user profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', data.user.id)
-      .single();
-
-    if (profileError) {
-      throw new Error('Error loading user profile');
-    }
-
-    const user: User = {
-      id: data.user.id,
-      email: data.user.email!,
-      full_name: profile.full_name || '',
-      role: profile.role || 'client',
-      company_name: profile.company_name,
-      industry: profile.industry,
-      is_active: profile.is_active,
-      created_at: profile.created_at,
-      updated_at: profile.updated_at,
-    };
-
-    return {
-      user,
-      token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-    };
+  constructor() {
+    // Cargar tokens desde localStorage al inicializar
+    this.token = localStorage.getItem('auth_token');
+    this.refreshToken = localStorage.getItem('refresh_token');
   }
 
-  async register(userData: RegisterData): Promise<AuthResponse> {
-    const { data, error } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password,
-      options: {
-        data: {
-          full_name: userData.full_name,
-          company_name: userData.company_name,
+  /**
+   * Realizar petición HTTP autenticada
+   */
+  private async makeRequest(url: string, options: RequestInit = {}): Promise<any> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Token expirado, intentar renovar
+        const refreshed = await this.refreshAccessToken();
+        if (refreshed) {
+          // Reintentar la petición original
+          headers['Authorization'] = `Bearer ${this.token}`;
+          const retryResponse = await fetch(url, { ...options, headers });
+          return retryResponse.json();
+        } else {
+          // No se pudo renovar, limpiar sesión
+          this.logout();
+          throw new Error('Sesión expirada');
         }
       }
-    });
-
-    if (error) {
-      throw new Error(error.message);
+      
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP Error: ${response.status}`);
     }
 
-    if (!data.user) {
-      throw new Error('Registration failed');
-    }
-
-    // Create profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        user_id: data.user.id,
-        full_name: userData.full_name,
-        company_name: userData.company_name,
-        role: 'client',
-        is_active: true,
-        accepted_terms: true,
-      })
-      .select()
-      .single();
-
-    if (profileError) {
-      console.error('Profile creation error:', profileError);
-      // Continue even if profile creation fails
-    }
-
-    const user: User = {
-      id: data.user.id,
-      email: data.user.email!,
-      full_name: userData.full_name,
-      role: 'client',
-      company_name: userData.company_name,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    return {
-      user,
-      token: data.session?.access_token || '',
-      refresh_token: data.session?.refresh_token || '',
-    };
+    return response.json();
   }
 
+  /**
+   * Iniciar sesión
+   */
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    try {
+      const response = await this.makeRequest(API_ENDPOINTS.AUTH.LOGIN, {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      });
+
+      if (response.success && response.token) {
+        this.token = response.token;
+        this.refreshToken = response.refresh_token;
+        
+        // Guardar en localStorage
+        localStorage.setItem('auth_token', this.token);
+        if (this.refreshToken) {
+          localStorage.setItem('refresh_token', this.refreshToken);
+        }
+        
+        console.log('Login exitoso:', response.user);
+      }
+
+      return response;
+    } catch (error: any) {
+      console.error('Error en login:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  /**
+   * Registrar nuevo usuario
+   */
+  async register(userData: RegisterData): Promise<AuthResponse> {
+    try {
+      const response = await this.makeRequest(API_ENDPOINTS.AUTH.REGISTER, {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
+
+      if (response.success && response.token) {
+        this.token = response.token;
+        this.refreshToken = response.refresh_token;
+        
+        // Guardar en localStorage
+        localStorage.setItem('auth_token', this.token);
+        if (this.refreshToken) {
+          localStorage.setItem('refresh_token', this.refreshToken);
+        }
+      }
+
+      return response;
+    } catch (error: any) {
+      console.error('Error en registro:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  /**
+   * Renovar token de acceso
+   */
+  async refreshAccessToken(): Promise<boolean> {
+    if (!this.refreshToken) return false;
+
+    try {
+      const response = await fetch(API_ENDPOINTS.AUTH.REFRESH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: this.refreshToken }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.token = data.token;
+        localStorage.setItem('auth_token', this.token);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Obtener perfil del usuario actual
+   */
+  async getCurrentUser(): Promise<User | null> {
+    try {
+      const response = await this.makeRequest(API_ENDPOINTS.AUTH.PROFILE);
+      return response.user || null;
+    } catch (error: any) {
+      console.error('Error obteniendo usuario:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Cerrar sesión
+   */
   async logout(): Promise<void> {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Logout error:', error);
+    try {
+      if (this.token) {
+        await this.makeRequest(API_ENDPOINTS.AUTH.LOGOUT, { method: 'POST' });
+      }
+    } catch (error) {
+      console.error('Error en logout:', error);
+    } finally {
+      // Limpiar tokens localmente
+      this.token = null;
+      this.refreshToken = null;
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
     }
   }
 
-  async getProfile(): Promise<User> {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      throw new Error('User not authenticated');
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (profileError) {
-      throw new Error('Error loading user profile');
-    }
-
-    return {
-      id: user.id,
-      email: user.email!,
-      full_name: profile.full_name || '',
-      role: profile.role || 'client',
-      company_name: profile.company_name,
-      industry: profile.industry,
-      is_active: profile.is_active,
-      created_at: profile.created_at,
-      updated_at: profile.updated_at,
-    };
-  }
-
-  async refreshToken(): Promise<string> {
-    const { data, error } = await supabase.auth.refreshSession();
-    
-    if (error || !data.session) {
-      throw new Error('Token refresh failed');
-    }
-    
-    return data.session.access_token;
-  }
-
-  getCurrentUser(): User | null {
-    // This will be handled by the AuthContext
-    return null;
-  }
-
-  getToken(): string | null {
-    // Handled by Supabase internally
-    return null;
-  }
-
+  /**
+   * Verificar si el usuario está autenticado
+   */
   isAuthenticated(): boolean {
-    // This will be handled by the AuthContext
-    return false;
+    return !!this.token;
   }
 
-  isAdmin(): boolean {
-    // This will be handled by the AuthContext
-    return false;
+  /**
+   * Obtener token actual
+   */
+  getToken(): string | null {
+    return this.token;
   }
 }
 
+// Instancia singleton
 export const authService = new AuthService();
-export default authService;
