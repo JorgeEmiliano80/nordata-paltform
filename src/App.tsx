@@ -13,6 +13,7 @@ import Upload from "@/pages/Upload";
 import Chatbot from "@/pages/Chatbot";
 import Customers from "@/pages/Customers";
 import Pipelines from "@/pages/Pipelines";
+import Insights from "@/pages/Insights";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import { Toaster } from "@/components/ui/sonner";
@@ -56,6 +57,11 @@ const App = () => {
                     <Route path="/analytics" element={
                       <ProtectedRoute>
                         <Analytics />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/insights" element={
+                      <ProtectedRoute>
+                        <Insights />
                       </ProtectedRoute>
                     } />
                     <Route path="/data" element={

@@ -67,6 +67,11 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
     setSelectedUser(null);
   };
 
+  const handleUserToggle = async (user: AdminUser) => {
+    const action = user.is_active ? 'deactivate' : 'activate';
+    await onUserAction(action, user.user_id);
+  };
+
   const getStatusBadge = (user: AdminUser) => {
     if (user.is_active) {
       return (
@@ -175,7 +180,7 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                         Editar Usuario
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => onUserAction(user.is_active ? 'deactivate' : 'activate', user.user_id)}
+                        onClick={() => handleUserToggle(user)}
                       >
                         {user.is_active ? (
                           <>
