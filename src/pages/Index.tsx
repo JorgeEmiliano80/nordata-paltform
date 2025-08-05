@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -229,12 +230,12 @@ const Index = () => {
             </span>
           </div>
           <p className="text-muted-foreground">
-            © 2024 Nordata.AI - {t('landing.title')}
+            © 2024 Nordata.AI - Plataforma de Análisis Inteligente de Datos
           </p>
           <div className="flex justify-center space-x-6 mt-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-primary transition-colors">Contact</a>
+            <a href="#" className="hover:text-primary transition-colors">Política de Privacidad</a>
+            <a href="#" className="hover:text-primary transition-colors">Términos de Servicio</a>
+            <a href="#" className="hover:text-primary transition-colors">Contacto</a>
           </div>
         </div>
       </footer>
