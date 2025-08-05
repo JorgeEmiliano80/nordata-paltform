@@ -1,6 +1,5 @@
 
-import { apiService } from './apiService';
-import { API_ENDPOINTS } from '@/config/api';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface User {
   id: string;
@@ -8,6 +7,8 @@ export interface User {
   full_name: string;
   role: 'admin' | 'client';
   company_name?: string;
+  industry?: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -32,96 +33,167 @@ export interface AuthResponse {
 
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiService.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
-    
-    if (response.success && response.data) {
-      localStorage.setItem('auth_token', response.data.token);
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      return response.data;
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
-    
-    throw new Error(response.message || 'Login failed');
+
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', data.user.id)
+      .single();
+
+    if (profileError) {
+      throw new Error('Error loading user profile');
+    }
+
+    const user: User = {
+      id: data.user.id,
+      email: data.user.email!,
+      full_name: profile.full_name || '',
+      role: profile.role || 'client',
+      company_name: profile.company_name,
+      industry: profile.industry,
+      is_active: profile.is_active,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+    };
+
+    return {
+      user,
+      token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    };
   }
 
   async register(userData: RegisterData): Promise<AuthResponse> {
-    const response = await apiService.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, userData);
-    
-    if (response.success && response.data) {
-      localStorage.setItem('auth_token', response.data.token);
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      return response.data;
+    const { data, error } = await supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password,
+      options: {
+        data: {
+          full_name: userData.full_name,
+          company_name: userData.company_name,
+        }
+      }
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
-    
-    throw new Error(response.message || 'Registration failed');
+
+    if (!data.user) {
+      throw new Error('Registration failed');
+    }
+
+    // Create profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        user_id: data.user.id,
+        full_name: userData.full_name,
+        company_name: userData.company_name,
+        role: 'client',
+        is_active: true,
+        accepted_terms: true,
+      })
+      .select()
+      .single();
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError);
+      // Continue even if profile creation fails
+    }
+
+    const user: User = {
+      id: data.user.id,
+      email: data.user.email!,
+      full_name: userData.full_name,
+      role: 'client',
+      company_name: userData.company_name,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    return {
+      user,
+      token: data.session?.access_token || '',
+      refresh_token: data.session?.refresh_token || '',
+    };
   }
 
   async logout(): Promise<void> {
-    try {
-      await apiService.post(API_ENDPOINTS.AUTH.LOGOUT);
-    } catch (error) {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
       console.error('Logout error:', error);
-    } finally {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
     }
   }
 
   async getProfile(): Promise<User> {
-    const response = await apiService.get<User>(API_ENDPOINTS.AUTH.PROFILE);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (response.success && response.data) {
-      localStorage.setItem('user', JSON.stringify(response.data));
-      return response.data;
+    if (authError || !user) {
+      throw new Error('User not authenticated');
     }
-    
-    throw new Error(response.message || 'Failed to get profile');
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError) {
+      throw new Error('Error loading user profile');
+    }
+
+    return {
+      id: user.id,
+      email: user.email!,
+      full_name: profile.full_name || '',
+      role: profile.role || 'client',
+      company_name: profile.company_name,
+      industry: profile.industry,
+      is_active: profile.is_active,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+    };
   }
 
   async refreshToken(): Promise<string> {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const { data, error } = await supabase.auth.refreshSession();
     
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
-    const response = await apiService.post<{ token: string }>(API_ENDPOINTS.AUTH.REFRESH, {
-      refresh_token: refreshToken,
-    });
-
-    if (response.success && response.data) {
-      localStorage.setItem('auth_token', response.data.token);
-      return response.data.token;
+    if (error || !data.session) {
+      throw new Error('Token refresh failed');
     }
     
-    throw new Error(response.message || 'Token refresh failed');
+    return data.session.access_token;
   }
 
   getCurrentUser(): User | null {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch {
-        return null;
-      }
-    }
+    // This will be handled by the AuthContext
     return null;
   }
 
   getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    // Handled by Supabase internally
+    return null;
   }
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    // This will be handled by the AuthContext
+    return false;
   }
 
   isAdmin(): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === 'admin';
+    // This will be handled by the AuthContext
+    return false;
   }
 }
 

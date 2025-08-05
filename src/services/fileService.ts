@@ -1,6 +1,5 @@
 
-import { apiService } from './apiService';
-import { API_ENDPOINTS } from '@/config/api';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface FileRecord {
   id: string;
@@ -45,8 +44,23 @@ export interface FileOperationResponse {
 export class FileService {
   async getFiles(): Promise<FileRecord[]> {
     try {
-      const response = await apiService.get<FileRecord[]>(API_ENDPOINTS.FILES.LIST);
-      return response.data || [];
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase
+        .from('files')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data || [];
     } catch (error) {
       console.error('Error fetching files:', error);
       throw error;
@@ -55,43 +69,48 @@ export class FileService {
 
   async uploadFile(file: File): Promise<FileUploadResponse> {
     try {
-      const response = await apiService.uploadFile<FileRecord>(
-        API_ENDPOINTS.FILES.UPLOAD,
-        file
-      );
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!response.success || !response.data) {
-        return {
-          success: false,
-          error: response.error || 'File upload failed'
-        };
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
-      // Transform backend response to match frontend interface
-      const backendFile = response.data as any;
-      const transformedFile: FileRecord = {
-        id: backendFile.id,
-        user_id: backendFile.user_id,
-        file_name: backendFile.file_name || backendFile.filename,
-        file_type: backendFile.file_type || backendFile.mime_type,
-        file_size: backendFile.file_size,
-        storage_url: backendFile.storage_url,
-        status: backendFile.status === 'done' ? 'processed' : backendFile.status,
-        databricks_job_id: backendFile.databricks_job_id,
-        databricks_run_id: backendFile.databricks_run_id,
-        error_message: backendFile.error_message,
-        created_at: backendFile.created_at,
-        updated_at: backendFile.updated_at
-      };
+      // Upload file to storage
+      const fileName = `${Date.now()}-${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('data-files')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      // Create file record
+      const { data: fileRecord, error: recordError } = await supabase
+        .from('files')
+        .insert({
+          user_id: user.id,
+          file_name: file.name,
+          file_type: file.type,
+          file_size: file.size,
+          storage_url: uploadData.path,
+          status: 'uploaded',
+        })
+        .select()
+        .single();
+
+      if (recordError) {
+        throw new Error(recordError.message);
+      }
 
       return {
         success: true,
-        data: transformedFile,
-        fileId: transformedFile.id,
+        data: fileRecord,
+        fileId: fileRecord.id,
         validationResult: {
           stats: {
-            totalRows: 100, // Mock data for now
-            totalColumns: 5,
+            totalRows: 0,
+            totalColumns: 0,
             emptyRows: 0
           }
         }
@@ -107,12 +126,22 @@ export class FileService {
 
   async deleteFile(fileId: string): Promise<FileOperationResponse> {
     try {
-      const response = await apiService.delete(`${API_ENDPOINTS.FILES.DELETE}/${fileId}`);
+      const { data: { user } } = await supabase.auth.getUser();
       
-      return {
-        success: response.success,
-        error: response.success ? undefined : (response.error || 'File deletion failed')
-      };
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Use the cleanup function
+      const { error } = await supabase.rpc('cleanup_file_data', {
+        file_uuid: fileId
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return { success: true };
     } catch (error) {
       console.error('Error deleting file:', error);
       return {
@@ -124,11 +153,17 @@ export class FileService {
 
   async processFile(fileId: string): Promise<FileOperationResponse> {
     try {
-      const response = await apiService.post(`${API_ENDPOINTS.FILES.PROCESS}/${fileId}`);
-      
+      const { data, error } = await supabase.functions.invoke('process-file', {
+        body: { fileId }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
       return {
-        success: response.success,
-        error: response.success ? undefined : (response.error || 'File processing failed')
+        success: data.success,
+        error: data.success ? undefined : data.error
       };
     } catch (error) {
       console.error('Error processing file:', error);
@@ -141,17 +176,34 @@ export class FileService {
 
   async downloadFile(fileId: string): Promise<Blob> {
     try {
-      const response = await fetch(`${API_ENDPOINTS.FILES.DOWNLOAD}/${fileId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('File download failed');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
-      return await response.blob();
+      // Get file record
+      const { data: fileRecord, error: fileError } = await supabase
+        .from('files')
+        .select('storage_url')
+        .eq('id', fileId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fileError || !fileRecord) {
+        throw new Error('File not found');
+      }
+
+      // Download from storage
+      const { data, error } = await supabase.storage
+        .from('data-files')
+        .download(fileRecord.storage_url);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
     } catch (error) {
       console.error('Error downloading file:', error);
       throw error;

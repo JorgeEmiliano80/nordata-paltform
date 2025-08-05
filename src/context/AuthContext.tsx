@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authService } from '@/services/authService';
-import type { User as AuthUser } from '@/services/authService';
+import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
@@ -25,7 +25,6 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: () => boolean;
-  // Legacy methods for backward compatibility
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, inviteToken?: string) => Promise<{ error?: string }>;
 }
@@ -40,48 +39,87 @@ export const useAuth = () => {
   return context;
 };
 
-// Transform AuthUser to User
-const transformUser = (authUser: AuthUser): User => ({
-  id: authUser.id,
-  email: authUser.email,
-  full_name: authUser.full_name,
-  role: authUser.role,
-  company_name: authUser.company_name,
-  industry: undefined, // Set to undefined since AuthUser doesn't have this field
-  is_active: true, // Default to true since backend doesn't return this field
-  created_at: authUser.created_at,
-  updated_at: authUser.updated_at,
-});
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkAuthState();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          await loadUserProfile(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkAuthState = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        const userData = await authService.getProfile();
-        setUser(transformUser(userData));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadUserProfile(session.user);
       }
     } catch (error) {
       console.error('Auth state check failed:', error);
-      localStorage.removeItem('auth_token');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUserProfile = async (authUser: SupabaseUser) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading profile:', error);
+        return;
+      }
+
+      const userData: User = {
+        id: authUser.id,
+        email: authUser.email!,
+        full_name: profile?.full_name || authUser.user_metadata?.full_name || '',
+        role: profile?.role || 'client',
+        company_name: profile?.company_name,
+        industry: profile?.industry,
+        is_active: profile?.is_active ?? true,
+        created_at: profile?.created_at || authUser.created_at,
+        updated_at: profile?.updated_at || authUser.updated_at,
+      };
+
+      setUser(userData);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const credentials = { email, password };
-      const result = await authService.login(credentials);
-      setUser(transformUser(result.user));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data.user) {
+        await loadUserProfile(data.user);
+      }
+
       return {};
     } catch (error: any) {
       return { error: error.message || 'Login failed' };
@@ -93,8 +131,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (email: string, password: string, inviteToken?: string) => {
     try {
       setLoading(true);
-      const userData = { email, password, full_name: email.split('@')[0] };
-      const result = await authService.register(userData);
+      
+      if (inviteToken) {
+        // Handle invitation registration
+        const { data: inviteData, error: inviteError } = await supabase.rpc('validate_invitation', {
+          token: inviteToken
+        });
+
+        if (inviteError || !inviteData?.valid) {
+          return { error: 'Invalid invitation token' };
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: inviteData.full_name,
+              company_name: inviteData.company_name,
+              industry: inviteData.industry,
+            }
+          }
+        });
+
+        if (error) {
+          return { error: error.message };
+        }
+
+        if (data.user) {
+          await supabase.rpc('use_invitation', {
+            user_uuid: data.user.id,
+            token: inviteToken
+          });
+        }
+      } else {
+        // Regular registration
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: email.split('@')[0],
+            }
+          }
+        });
+
+        if (error) {
+          return { error: error.message };
+        }
+      }
+
       return {};
     } catch (error: any) {
       return { error: error.message || 'Registration failed' };
@@ -105,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await authService.logout();
+      await supabase.auth.signOut();
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);
@@ -123,9 +209,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: AuthContextType = {
     user,
-    profile: user, // For backward compatibility
+    profile: user,
     loading,
-    profileLoading: loading, // For backward compatibility
+    profileLoading: loading,
     login,
     register,
     logout,

@@ -1,53 +1,35 @@
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+// Configuración actualizada para usar Supabase exclusivamente
+const SUPABASE_URL = 'https://sveaehifwnoetwfxkasn.supabase.co';
 
 export const API_ENDPOINTS = {
-  // Auth endpoints
+  // Supabase Auth endpoints (ya manejados por el cliente de Supabase)
   AUTH: {
-    LOGIN: `${API_BASE_URL}/auth/login`,
-    REGISTER: `${API_BASE_URL}/auth/register`,
-    REFRESH: `${API_BASE_URL}/auth/refresh`,
-    LOGOUT: `${API_BASE_URL}/auth/logout`,
-    PROFILE: `${API_BASE_URL}/auth/profile`,
+    LOGIN: `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+    REGISTER: `${SUPABASE_URL}/auth/v1/signup`,
+    REFRESH: `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+    LOGOUT: `${SUPABASE_URL}/auth/v1/logout`,
+    PROFILE: `${SUPABASE_URL}/rest/v1/profiles`,
   },
   
-  // Users endpoints
-  USERS: {
-    LIST: `${API_BASE_URL}/users`,
-    CREATE: `${API_BASE_URL}/users`,
-    UPDATE: (id: string) => `${API_BASE_URL}/users/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/users/${id}`,
-    INVITE: `${API_BASE_URL}/users/invite`,
-  },
-  
-  // Files endpoints
+  // Supabase Functions endpoints
   FILES: {
-    LIST: `${API_BASE_URL}/files`,
-    UPLOAD: `${API_BASE_URL}/files/upload`,
-    DELETE: (id: string) => `${API_BASE_URL}/files/${id}`,
-    DOWNLOAD: (id: string) => `${API_BASE_URL}/files/${id}/download`,
-    PROCESS: (id: string) => `${API_BASE_URL}/files/${id}/process`,
+    LIST: `${SUPABASE_URL}/rest/v1/files`,
+    UPLOAD: `${SUPABASE_URL}/functions/v1/upload-file`,
+    DELETE: `${SUPABASE_URL}/functions/v1/delete-file`,
+    PROCESS: `${SUPABASE_URL}/functions/v1/process-file`,
   },
   
-  // Admin endpoints
+  // Edge Functions
   ADMIN: {
-    DASHBOARD: `${API_BASE_URL}/admin/dashboard`,
-    USERS: `${API_BASE_URL}/admin/users`,
-    ANALYTICS: `${API_BASE_URL}/admin/analytics`,
+    USERS: `${SUPABASE_URL}/functions/v1/admin-get-users`,
+    CREATE_USER: `${SUPABASE_URL}/functions/v1/admin-create-user`,
+    INVITE: `${SUPABASE_URL}/functions/v1/admin-invite-user`,
   },
   
-  // Chatbot endpoints
   CHATBOT: {
-    CHAT: `${API_BASE_URL}/chatbot/chat`,
-    HISTORY: `${API_BASE_URL}/chatbot/history`,
-  },
-  
-  // Analytics endpoints
-  ANALYTICS: {
-    DASHBOARD: `${API_BASE_URL}/analytics/dashboard`,
-    BEHAVIOR: `${API_BASE_URL}/analytics/behavior`,
-    SEGMENTS: `${API_BASE_URL}/analytics/segments`,
+    CHAT: `${SUPABASE_URL}/functions/v1/chatbot`,
   },
 };
 
-export default API_BASE_URL;
+export default SUPABASE_URL;
