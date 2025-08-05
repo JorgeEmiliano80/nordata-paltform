@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,23 +8,23 @@ import { es } from 'date-fns/locale';
 import { useFiles } from '@/hooks/useFiles';
 
 const FilesList: React.FC = () => {
-  const { files, loading, refetchFiles, deleteFile, processFile } = useFiles();
+  const { files, loading, refetch, deleteFile, processFile } = useFiles();
 
   useEffect(() => {
-    refetchFiles();
+    refetch();
   }, []);
 
   const handleDelete = async (fileId: string) => {
     const result = await deleteFile(fileId);
     if (result.success) {
-      refetchFiles();
+      refetch();
     }
   };
 
   const handleProcess = async (fileId: string) => {
     const result = await processFile(fileId);
     if (result.success) {
-      refetchFiles();
+      refetch();
     }
   };
 

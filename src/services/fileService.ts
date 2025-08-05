@@ -4,22 +4,36 @@ import { API_ENDPOINTS } from '@/config/api';
 
 export interface FileRecord {
   id: string;
-  filename: string;
+  file_name: string;
   original_name: string;
   file_size: number;
-  mime_type: string;
+  file_type: string;
   file_path: string;
-  status: 'uploaded' | 'processing' | 'processed' | 'error';
+  status: 'uploaded' | 'processing' | 'done' | 'error';
   processing_result?: any;
   error_message?: string;
   user_id: string;
   created_at: string;
   updated_at: string;
+  uploaded_at: string;
 }
 
 export interface FileUploadResponse {
   file: FileRecord;
   message: string;
+  success: boolean;
+  fileId?: string;
+  validationResult?: {
+    stats: {
+      totalRows: number;
+      totalColumns: number;
+      emptyRows: number;
+    };
+  };
+  validationErrors?: Array<{
+    message: string;
+    type: string;
+  }>;
 }
 
 class FileService {
@@ -27,39 +41,46 @@ class FileService {
     const response = await apiService.get<FileRecord[]>(API_ENDPOINTS.FILES.LIST);
     
     if (response.success && response.data) {
-      return response.data;
+      // Transform backend response to match frontend expectations
+      return response.data.map(file => ({
+        ...file,
+        file_name: file.filename || file.file_name,
+        file_type: file.mime_type || file.file_type,
+        uploaded_at: file.created_at,
+        status: file.status === 'processed' ? 'done' : file.status
+      }));
     }
     
     throw new Error(response.message || 'Failed to fetch files');
   }
 
-  async uploadFile(file: File): Promise<FileRecord> {
+  async uploadFile(file: File): Promise<FileUploadResponse> {
     const response = await apiService.uploadFile<FileUploadResponse>(
       API_ENDPOINTS.FILES.UPLOAD,
       file
     );
     
     if (response.success && response.data) {
-      return response.data.file;
+      return {
+        ...response.data,
+        success: true,
+        fileId: response.data.file.id
+      };
     }
     
     throw new Error(response.message || 'File upload failed');
   }
 
-  async deleteFile(fileId: string): Promise<void> {
+  async deleteFile(fileId: string): Promise<{ success: boolean }> {
     const response = await apiService.delete(API_ENDPOINTS.FILES.DELETE(fileId));
     
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to delete file');
-    }
+    return { success: response.success };
   }
 
-  async processFile(fileId: string): Promise<void> {
+  async processFile(fileId: string): Promise<{ success: boolean }> {
     const response = await apiService.post(API_ENDPOINTS.FILES.PROCESS(fileId));
     
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to process file');
-    }
+    return { success: response.success };
   }
 
   async downloadFile(fileId: string): Promise<Blob> {

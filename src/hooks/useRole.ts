@@ -2,7 +2,7 @@
 import { useAuth } from '@/context/AuthContext';
 
 export const useRole = () => {
-  const { user, loading, profileLoading } = useAuth();
+  const { user, loading, profileLoading, isAdmin, isClient } = useAuth();
 
   const hasPermission = (requiredRole: 'admin' | 'client'): boolean => {
     if (!user) return false;
@@ -32,6 +32,8 @@ export const useRole = () => {
     profile: user,
     loading,
     profileLoading,
+    isAdmin,
+    isClient,
     hasPermission,
     canAccessRoute,
   };

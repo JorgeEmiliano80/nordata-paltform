@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService, User } from '@/services/authService';
+import { authService, User, LoginCredentials, RegisterData } from '@/services/authService';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -8,8 +8,11 @@ interface AuthContextType {
   loading: boolean;
   profileLoading: boolean;
   profile: User | null;
+  signIn: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
+  signUp: (userData: RegisterData) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   isAdmin: () => boolean;
+  isClient: () => boolean;
   refreshUser: () => Promise<void>;
 }
 
@@ -71,6 +74,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await refreshUserProfile();
   };
 
+  const signIn = async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await authService.login(credentials);
+      setUser(response.user);
+      toast.success('Sesión iniciada exitosamente');
+      return { success: true };
+    } catch (error: any) {
+      const errorMessage = error.message || 'Error al iniciar sesión';
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const signUp = async (userData: RegisterData): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await authService.register(userData);
+      setUser(response.user);
+      toast.success('Cuenta creada exitosamente');
+      return { success: true };
+    } catch (error: any) {
+      const errorMessage = error.message || 'Error al crear cuenta';
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
   const signOut = async () => {
     try {
       await authService.logout();
@@ -88,6 +117,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return user?.role === 'admin' || false;
   };
 
+  const isClient = (): boolean => {
+    return user?.role === 'client' || false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -95,8 +128,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         loading,
         profileLoading,
         profile: user, // For compatibility with existing code
+        signIn,
+        signUp,
         signOut,
         isAdmin,
+        isClient,
         refreshUser,
       }}
     >

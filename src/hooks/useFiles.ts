@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fileService, FileRecord } from '@/services/fileService';
+import { fileService, FileRecord, FileUploadResponse } from '@/services/fileService';
 import { toast } from 'sonner';
 
 export const useFiles = () => {
@@ -52,14 +52,18 @@ export const useFiles = () => {
 
   return {
     files,
+    loading: isLoading,
     isLoading,
     error,
-    uploadFile: uploadMutation.mutate,
-    deleteFile: deleteMutation.mutate,
-    processFile: processMutation.mutate,
+    uploadFile: uploadMutation.mutateAsync,
+    deleteFile: deleteMutation.mutateAsync,
+    processFile: processMutation.mutateAsync,
+    uploading: uploadMutation.isPending,
+    validating: false, // For compatibility
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isProcessing: processMutation.isPending,
     refetch,
+    refetchFiles: refetch,
   };
 };
