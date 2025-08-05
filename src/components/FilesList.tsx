@@ -8,23 +8,31 @@ import { es } from 'date-fns/locale';
 import { useFiles } from '@/hooks/useFiles';
 
 const FilesList: React.FC = () => {
-  const { files, loading, refetch, deleteFile, processFile } = useFiles();
+  const { files, isLoading, refetch, deleteFile, processFile } = useFiles();
 
   useEffect(() => {
     refetch();
   }, []);
 
   const handleDelete = async (fileId: string) => {
-    const result = await deleteFile(fileId);
-    if (result.success) {
-      refetch();
+    try {
+      const result = await deleteFile(fileId);
+      if (result && typeof result === 'object' && 'success' in result && result.success) {
+        refetch();
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
     }
   };
 
   const handleProcess = async (fileId: string) => {
-    const result = await processFile(fileId);
-    if (result.success) {
-      refetch();
+    try {
+      const result = await processFile(fileId);
+      if (result && typeof result === 'object' && 'success' in result && result.success) {
+        refetch();
+      }
+    } catch (error) {
+      console.error('Error processing file:', error);
     }
   };
 
@@ -66,7 +74,7 @@ const FilesList: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -114,7 +122,7 @@ const FilesList: React.FC = () => {
                       <span>{formatFileSize(file.file_size)}</span>
                       <span>{file.file_type}</span>
                       <span>
-                        {format(new Date(file.uploaded_at || file.created_at), 'PPp', { locale: es })}
+                        {format(new Date(file.created_at), 'PPp', { locale: es })}
                       </span>
                     </div>
                     {file.error_message && (
@@ -144,7 +152,7 @@ const FilesList: React.FC = () => {
                         Procesar
                       </Button>
                     )}
-                    {file.status === 'done' && (
+                    {file.status === 'processed' && (
                       <Button variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-1" />
                         Descargar

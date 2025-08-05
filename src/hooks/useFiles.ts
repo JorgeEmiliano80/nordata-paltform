@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fileService, FileRecord, FileUploadResponse } from '@/services/fileService';
+import { fileService, FileRecord, FileUploadResponse, FileOperationResponse } from '@/services/fileService';
 import { toast } from 'sonner';
 
 export const useFiles = () => {

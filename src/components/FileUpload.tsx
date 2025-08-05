@@ -174,19 +174,24 @@ const FileUpload: React.FC<FileUploadProps> = ({
       setValidationProgress(100);
       setUploadProgress(100);
 
-      if (result.success) {
-        setSuccess(true);
-        if (result.validationResult?.stats) {
-          setValidationStats(result.validationResult.stats);
-        }
-        if (onUploadComplete && result.fileId) {
-          onUploadComplete(result.fileId);
+      if (result && typeof result === 'object' && 'success' in result) {
+        const uploadResult = result as any;
+        if (uploadResult.success) {
+          setSuccess(true);
+          if (uploadResult.validationResult?.stats) {
+            setValidationStats(uploadResult.validationResult.stats);
+          }
+          if (onUploadComplete && uploadResult.fileId) {
+            onUploadComplete(uploadResult.fileId);
+          }
+        } else {
+          const errorMsg = uploadResult.validationErrors 
+            ? `Errores de validación: ${uploadResult.validationErrors.slice(0, 2).map((e: any) => e.message).join('; ')}`
+            : 'Error al subir el archivo';
+          setError(errorMsg);
         }
       } else {
-        const errorMsg = result.validationErrors 
-          ? `Errores de validación: ${result.validationErrors.slice(0, 2).map(e => e.message).join('; ')}`
-          : 'Error al subir el archivo';
-        setError(errorMsg);
+        setError('Error inesperado al subir el archivo');
       }
     } catch (error) {
       console.error('Upload error:', error);

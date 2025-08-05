@@ -9,7 +9,7 @@ export interface FileRecord {
   file_type: string;
   file_size: number;
   storage_url: string;
-  status: 'uploaded' | 'processing' | 'done' | 'error';
+  status: 'uploaded' | 'processing' | 'processed' | 'error';
   databricks_job_id?: string;
   databricks_run_id?: number;
   error_message?: string;
@@ -17,9 +17,27 @@ export interface FileRecord {
   updated_at: string;
 }
 
-export interface FileUploadResult {
+export interface FileUploadResponse {
   success: boolean;
   data?: FileRecord;
+  fileId?: string;
+  validationResult?: {
+    stats: {
+      totalRows: number;
+      totalColumns: number;
+      emptyRows: number;
+    };
+  };
+  validationErrors?: Array<{
+    message: string;
+  }>;
+  message?: string;
+  error?: string;
+}
+
+export interface FileOperationResponse {
+  success: boolean;
+  data?: any;
   message?: string;
   error?: string;
 }
@@ -35,7 +53,7 @@ export class FileService {
     }
   }
 
-  async uploadFile(file: File): Promise<FileRecord> {
+  async uploadFile(file: File): Promise<FileUploadResponse> {
     try {
       const response = await apiService.uploadFile<FileRecord>(
         API_ENDPOINTS.FILES.UPLOAD,
@@ -43,7 +61,10 @@ export class FileService {
       );
       
       if (!response.success || !response.data) {
-        throw new Error(response.error || 'File upload failed');
+        return {
+          success: false,
+          error: response.error || 'File upload failed'
+        };
       }
 
       // Transform backend response to match frontend interface
@@ -55,7 +76,7 @@ export class FileService {
         file_type: backendFile.file_type || backendFile.mime_type,
         file_size: backendFile.file_size,
         storage_url: backendFile.storage_url,
-        status: backendFile.status === 'processed' ? 'done' : backendFile.status,
+        status: backendFile.status === 'done' ? 'processed' : backendFile.status,
         databricks_job_id: backendFile.databricks_job_id,
         databricks_run_id: backendFile.databricks_run_id,
         error_message: backendFile.error_message,
@@ -63,36 +84,58 @@ export class FileService {
         updated_at: backendFile.updated_at
       };
 
-      return transformedFile;
+      return {
+        success: true,
+        data: transformedFile,
+        fileId: transformedFile.id,
+        validationResult: {
+          stats: {
+            totalRows: 100, // Mock data for now
+            totalColumns: 5,
+            emptyRows: 0
+          }
+        }
+      };
     } catch (error) {
       console.error('Error uploading file:', error);
-      throw error;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Upload failed'
+      };
     }
   }
 
-  async deleteFile(fileId: string): Promise<void> {
+  async deleteFile(fileId: string): Promise<FileOperationResponse> {
     try {
       const response = await apiService.delete(`${API_ENDPOINTS.FILES.DELETE}/${fileId}`);
       
-      if (!response.success) {
-        throw new Error(response.error || 'File deletion failed');
-      }
+      return {
+        success: response.success,
+        error: response.success ? undefined : (response.error || 'File deletion failed')
+      };
     } catch (error) {
       console.error('Error deleting file:', error);
-      throw error;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Delete failed'
+      };
     }
   }
 
-  async processFile(fileId: string): Promise<void> {
+  async processFile(fileId: string): Promise<FileOperationResponse> {
     try {
       const response = await apiService.post(`${API_ENDPOINTS.FILES.PROCESS}/${fileId}`);
       
-      if (!response.success) {
-        throw new Error(response.error || 'File processing failed');
-      }
+      return {
+        success: response.success,
+        error: response.success ? undefined : (response.error || 'File processing failed')
+      };
     } catch (error) {
       console.error('Error processing file:', error);
-      throw error;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Process failed'
+      };
     }
   }
 

@@ -25,7 +25,7 @@ import { TrackedButton } from '@/components/tracking/TrackedButton';
 import { TrackedTabs, TrackedTabsTrigger, TabsContent, TabsList } from '@/components/tracking/TrackedTabs';
 
 const Dashboard = () => {
-  const { user, profile, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalFiles: 0,
@@ -94,7 +94,7 @@ const Dashboard = () => {
             {/* Header */}
             <div className="space-y-2">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Bienvenido, Jorge Emiliano
+                Bienvenido, {user?.full_name || 'Usuario'}
               </h1>
               <p className="text-muted-foreground text-lg">
                 {isAdmin() ? 'Panel de administración de la plataforma' : 'Su centro de análisis de datos inteligente'}
@@ -288,5 +288,4 @@ const Dashboard = () => {
   );
 };
 
-// Remove duplicate StatCard and QuickAction components at the bottom since they're now defined inline
 export default Dashboard;
