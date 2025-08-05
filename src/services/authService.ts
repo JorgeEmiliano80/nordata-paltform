@@ -1,4 +1,3 @@
-
 /**
  * Servicio de Autenticación - Nueva Arquitectura GCP
  * Migrado de Supabase a Google Cloud Functions + Firebase Auth
@@ -37,6 +36,13 @@ export interface RegisterData {
   full_name: string;
   company_name?: string;
   industry?: string;
+}
+
+export interface CreateMasterUserData {
+  email: string;
+  password: string;
+  full_name: string;
+  role: 'admin';
 }
 
 class AuthService {
@@ -144,6 +150,36 @@ class AuthService {
       return response;
     } catch (error: any) {
       console.error('Error en registro:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  /**
+   * Crear usuario master (administrador principal)
+   */
+  async createMasterUser(userData: CreateMasterUserData): Promise<AuthResponse> {
+    try {
+      const response = await this.makeRequest(API_ENDPOINTS.AUTH.CREATE_MASTER, {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
+
+      if (response.success && response.token) {
+        this.token = response.token;
+        this.refreshToken = response.refresh_token;
+        
+        // Guardar en localStorage
+        localStorage.setItem('auth_token', this.token);
+        if (this.refreshToken) {
+          localStorage.setItem('refresh_token', this.refreshToken);
+        }
+        
+        console.log('Master user creado exitosamente:', response.user);
+      }
+
+      return response;
+    } catch (error: any) {
+      console.error('Error creando usuario master:', error);
       return { success: false, message: error.message };
     }
   }

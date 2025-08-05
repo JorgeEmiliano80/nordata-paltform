@@ -1,68 +1,80 @@
 
 /**
- * Configuración para Databricks + GCP
- * Nueva arquitectura sin Supabase
+ * Configuración para Databricks y GCP Cloud Functions
+ * Nueva arquitectura migrada de Supabase
  */
 
-export const DATABRICKS_CONFIG = {
-  // URLs base para diferentes entornos
-  WORKSPACE_URL: import.meta.env.VITE_DATABRICKS_WORKSPACE_URL || 'https://your-workspace.cloud.databricks.com',
-  API_VERSION: 'v2.1',
-  
-  // Endpoints principales
-  ENDPOINTS: {
-    JOBS: '/api/2.1/jobs',
-    RUNS: '/api/2.1/jobs/runs',
-    CLUSTERS: '/api/2.1/clusters',
-    WORKSPACE: '/api/2.1/workspace',
-    FILES: '/api/2.1/workspace/import'
-  }
-};
-
+// URLs base para los diferentes servicios
 export const GCP_CONFIG = {
-  // Google Cloud Platform
   PROJECT_ID: import.meta.env.VITE_GCP_PROJECT_ID || 'nordata-platform',
   REGION: import.meta.env.VITE_GCP_REGION || 'us-central1',
-  
-  // Cloud Storage
-  STORAGE_BUCKET: import.meta.env.VITE_GCP_STORAGE_BUCKET || 'nordata-files',
-  
-  // Cloud Functions
-  FUNCTIONS_BASE_URL: import.meta.env.VITE_GCP_FUNCTIONS_URL || 'https://us-central1-nordata-platform.cloudfunctions.net',
-  
-  // BigQuery
-  BIGQUERY_DATASET: import.meta.env.VITE_GCP_BIGQUERY_DATASET || 'nordata_analytics'
+  CLOUD_FUNCTIONS_URL: import.meta.env.VITE_GCP_CLOUD_FUNCTIONS_URL || 'https://us-central1-nordata-platform.cloudfunctions.net'
 };
 
+export const DATABRICKS_CONFIG = {
+  WORKSPACE_URL: import.meta.env.VITE_DATABRICKS_WORKSPACE_URL || 'https://adb-workspace.cloud.databricks.com',
+  TOKEN: import.meta.env.VITE_DATABRICKS_TOKEN || '',
+  CLUSTER_ID: import.meta.env.VITE_DATABRICKS_CLUSTER_ID || '',
+  WAREHOUSE_ID: import.meta.env.VITE_DATABRICKS_WAREHOUSE_ID || ''
+};
+
+export const FIREBASE_CONFIG = {
+  API_KEY: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  STORAGE_BUCKET: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  APP_ID: import.meta.env.VITE_FIREBASE_APP_ID || ''
+};
+
+// Endpoints de la API
 export const API_ENDPOINTS = {
-  // Nuevos endpoints para la arquitectura GCP + Databricks
+  // Autenticación
   AUTH: {
-    LOGIN: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/auth-login`,
-    REGISTER: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/auth-register`,
-    REFRESH: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/auth-refresh`,
-    LOGOUT: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/auth-logout`,
-    PROFILE: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/user-profile`,
+    LOGIN: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/auth-login`,
+    REGISTER: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/auth-register`,
+    LOGOUT: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/auth-logout`,
+    REFRESH: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/auth-refresh`,
+    PROFILE: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/auth-profile`,
+    CREATE_MASTER: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/auth-create-master`
   },
   
+  // Gestión de archivos
   FILES: {
-    LIST: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/files-list`,
-    UPLOAD: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/files-upload`,
-    DELETE: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/files-delete`,
-    PROCESS: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/files-process`,
-    STATUS: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/files-status`,
+    UPLOAD: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/files-upload`,
+    LIST: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/files-list`,
+    DELETE: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/files-delete`,
+    PROCESS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/files-process`,
+    STATUS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/files-status`
   },
-  
+
+  // Databricks
   DATABRICKS: {
-    SUBMIT_JOB: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/databricks-submit`,
-    JOB_STATUS: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/databricks-status`,
-    CANCEL_JOB: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/databricks-cancel`,
+    JOBS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-jobs`,
+    CLUSTERS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-clusters`,
+    WAREHOUSES: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-warehouses`,
+    EXECUTE_QUERY: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-query`,
+    JOB_STATUS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/databricks-job-status`
   },
-  
-  ANALYTICS: {
-    DASHBOARD: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/analytics-dashboard`,
-    INSIGHTS: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/analytics-insights`,
-    REPORTS: `${GCP_CONFIG.FUNCTIONS_BASE_URL}/analytics-reports`,
+
+  // Administración
+  ADMIN: {
+    USERS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/admin-users`,
+    INVITES: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/admin-invites`,
+    SETTINGS: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/admin-settings`
+  },
+
+  // Chat/AI
+  CHATBOT: {
+    CHAT: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/chatbot-message`,
+    HISTORY: `${GCP_CONFIG.CLOUD_FUNCTIONS_URL}/chatbot-history`
   }
 };
 
-export default API_ENDPOINTS;
+// Configuraciones adicionales
+export const APP_CONFIG = {
+  MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB
+  ALLOWED_FILE_TYPES: ['csv', 'xlsx', 'json', 'parquet'],
+  PAGINATION_SIZE: 20,
+  REQUEST_TIMEOUT: 30000 // 30 segundos
+};
